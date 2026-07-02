@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zone Touch 10-in-1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:#060910;color:#C8D0DC;font-family:'JetBrains Mono',monospace;font-size:13px;}
+.app{display:flex;height:100vh;overflow:hidden;}
+.sb{width:248px;min-width:248px;background:#07090E;border-right:1px solid #111827;display:flex;flex-direction:column;overflow:hidden;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.logo{padding:14px;border-bottom:1px solid #111827;display:flex;align-items:center;gap:10px;}
+.logo-orb{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#A78BFA,#EC4899);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;box-shadow:0 0 14px rgba(167,139,250,.25);}
+.logo-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#E8EDF3;}
+.logo-tag{margin-left:auto;font-size:10px;background:#111827;color:#3C4A5C;padding:2px 7px;border-radius:5px;font-family:'Space Grotesk',sans-serif;border:1px solid #1A2535;}
+.acct{padding:12px 14px;border-bottom:1px solid #111827;}
+.arow{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.adot{width:8px;height:8px;border-radius:50%;background:#1E2A38;transition:all .3s;}
+.adot.on{background:#22C55E;box-shadow:0 0 7px #22C55E;}
+.albl{font-size:11px;color:#6B7A8D;font-family:'Space Grotesk',sans-serif;font-weight:500;}
+.abal{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#E8EDF3;margin:3px 0 1px 16px;min-height:20px;}
+.aid{font-size:10px;color:#2C3A4A;margin:0 0 8px 16px;min-height:13px;}
+.live-status{font-size:11px;color:#FB923C;margin:0 0 7px 0;min-height:15px;font-family:'Space Grotesk',sans-serif;}
+.btn-oauth{width:100%;background:linear-gradient(135deg,#C8102E,#E63950);color:#fff;border:none;border-radius:7px;padding:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn-oauth:hover{opacity:.88;}
+.div-or{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.div-or::before,.div-or::after{content:'';flex:1;height:1px;background:#192030;}
+.div-or span{font-size:10px;color:#3C4A5C;font-family:'Space Grotesk',sans-serif;}
+.tinp{width:100%;background:#0C1220;border:1px solid #192030;color:#C8D0DC;font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 10px;border-radius:7px;margin-bottom:5px;outline:none;}
+.tinp:focus{border-color:#A78BFA;}
+.btn-demo{width:100%;background:#0C1220;color:#A78BFA;border:1px solid #A78BFA;border-radius:7px;padding:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;cursor:pointer;}
+.btn-demo:disabled{opacity:.4;cursor:not-allowed;}
+.slist{flex:1;overflow-y:auto;padding:6px;}
+.si{display:flex;align-items:center;padding:9px 10px;border-radius:9px;cursor:pointer;margin-bottom:2px;gap:8px;border:1px solid transparent;transition:background .1s,border-color .1s;}
+.si:hover{background:#0C1220;}.si.active{background:#0C1220;border-color:#192030;}
+.sinum{width:22px;height:22px;border-radius:7px;background:#111827;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#4B5A6C;flex-shrink:0;}
+.sinum.on{background:rgba(167,139,250,.15);color:#A78BFA;}
+.simeta{flex:1;min-width:0;}
+.sisym{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;color:#D4DAE4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sisub{font-size:10px;color:#2C3A4A;margin-top:2px;}
+.siright{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.sdot{width:7px;height:7px;border-radius:50%;background:#1E2A38;}
+.sdot.on{background:#22C55E;box-shadow:0 0 5px #22C55E;animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.spl{font-size:10px;font-weight:600;font-family:'Space Grotesk',sans-serif;}
+.cg{color:#22C55E;}.cr{color:#EF4444;}.cm{color:#2C3A4A;}
+.sbfoot{padding:10px 12px;border-top:1px solid #111827;}
+.btn-stopall{width:100%;background:transparent;color:#EF4444;border:1px solid #2A1515;border-radius:7px;padding:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;cursor:pointer;}
+.btn-stopall:hover{background:#150808;}
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.wi{font-size:56px;opacity:.18;}.wt{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;color:#1A2230;}.ws{color:#131C28;font-size:13px;}
+.dash{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.hdr{padding:13px 22px;border-bottom:1px solid #111827;display:flex;align-items:center;gap:12px;flex-shrink:0;background:#07090E;}
+.hdr-num{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;flex-shrink:0;}
+.hdr-info{flex:1;min-width:0;}
+.hdr-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#E8EDF3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-meta{font-size:11px;color:#4B5A6C;margin-top:2px;}
+.badge{font-size:11px;padding:4px 12px;border-radius:20px;font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap;}
+.badge.stp{background:rgba(30,42,56,.4);color:#3C4A5C;border:1px solid #192030;}
+.badge.col{background:rgba(251,146,60,.1);color:#FB923C;border:1px solid rgba(251,146,60,.22);}
+.badge.mon{background:rgba(34,197,94,.1);color:#22C55E;border:1px solid rgba(34,197,94,.22);}
+.badge.con{background:rgba(59,130,246,.1);color:#3B82F6;border:1px solid rgba(59,130,246,.22);}
+.badge.trd{background:rgba(167,139,250,.1);color:#A78BFA;border:1px solid rgba(167,139,250,.22);}
+.hbtns{display:flex;gap:8px;flex-shrink:0;}
+.btn-start{background:#A78BFA;color:#0D0520;border:none;border-radius:8px;padding:9px 20px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-start:disabled{opacity:.4;cursor:not-allowed;}
+.btn-stop{background:transparent;color:#EF4444;border:1px solid #EF4444;border-radius:8px;padding:9px 20px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-stop:disabled{opacity:.4;cursor:not-allowed;}
+.sbar{display:grid;grid-template-columns:repeat(5,1fr);flex-shrink:0;border-bottom:1px solid #111827;}
+.sc{padding:11px 14px;border-right:1px solid #111827;background:#07090E;}.sc:last-child{border-right:none;}
+.sl{font-size:10px;color:#2C3A4A;text-transform:uppercase;letter-spacing:1px;font-family:'Space Grotesk',sans-serif;margin-bottom:4px;}
+.sv{font-size:20px;font-weight:700;color:#E8EDF3;font-family:'Space Grotesk',sans-serif;letter-spacing:-.5px;}
+.sv.g{color:#22C55E;}.sv.r{color:#EF4444;}
+.cgrid{flex:1;overflow:hidden;display:grid;grid-template-columns:316px 1fr;grid-template-rows:1fr 185px;}
+.setp{grid-column:1;grid-row:1;border-right:1px solid #111827;overflow-y:auto;padding:13px 15px;background:#07090E;}
+.ph{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:#2C3A4A;margin-bottom:10px;}
+.f{margin-bottom:9px;}
+.f label{display:block;font-size:11px;color:#4B5A6C;margin-bottom:4px;font-family:'Space Grotesk',sans-serif;}
+.f input,.f select{width:100%;background:#0C1220;border:1px solid #192030;color:#C8D0DC;font-family:'JetBrains Mono',monospace;font-size:13px;padding:7px 10px;border-radius:7px;outline:none;transition:border-color .15s;}
+.f input:focus,.f select:focus{border-color:#A78BFA;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.row3{display:grid;grid-template-columns:1fr 80px;gap:6px;}
+.hr{height:1px;background:#111827;margin:11px 0;}
+.pills{display:flex;gap:4px;}
+.pill{flex:1;padding:7px 4px;background:#0C1220;border:1px solid #192030;color:#4B5A6C;border-radius:7px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:11px;text-align:center;line-height:1.4;transition:all .12s;}
+.pill.on{background:rgba(167,139,250,.1);color:#A78BFA;border-color:#A78BFA;}
+.pill-sub{font-size:9px;font-weight:400;color:#2C3A4A;margin-top:2px;}
+.fpill{flex:1;padding:8px 4px;background:#0C1220;border:1px solid #192030;color:#4B5A6C;border-radius:7px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:11px;text-align:center;line-height:1.4;transition:all .12s;}
+.fpill.fn{background:rgba(75,90,108,.12);color:#8897A8;border-color:#4B5A6C;}
+.fpill.fm{background:rgba(251,146,60,.1);color:#FB923C;border-color:#FB923C;}
+.fpill.ft{background:rgba(34,197,94,.1);color:#22C55E;border-color:#22C55E;}
+.fbox{background:#0A1018;border:1px solid #192030;border-radius:8px;padding:11px;margin-top:9px;}
+.fbox-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;}
+.fbox-title.m{color:#FB923C;}.fbox-title.t{color:#22C55E;}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:#0A1018;border:1px solid #192030;border-radius:7px;margin-bottom:9px;cursor:pointer;gap:10px;}
+.tog-lbl{font-size:11px;color:#C8D0DC;font-family:'Space Grotesk',sans-serif;font-weight:500;flex:1;}
+.tog-lbl span{display:block;font-size:10px;color:#4B5A6C;font-weight:400;margin-top:2px;}
+.tog{width:38px;height:21px;border-radius:11px;background:#1E2A38;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;outline:none;}
+.tog.on{background:#A78BFA;}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:left .2s;}
+.tog.on::after{left:20px;}
+.btn-save{width:100%;background:#A78BFA;color:#0D0520;border:none;border-radius:8px;padding:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px;}
+.smsg{text-align:center;font-size:11px;color:#A78BFA;margin-top:6px;height:15px;transition:opacity .3s;}
+.logp{grid-column:2;grid-row:1;overflow:hidden;display:flex;flex-direction:column;padding:13px 15px;}
+.log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.logbox{flex:1;overflow-y:auto;font-size:12px;line-height:1.7;}
+.le{color:#2C3A4A;white-space:pre-wrap;word-break:break-word;}
+.le .ts{color:#1A2535;margin-right:6px;}
+.le.ok{color:#C8D0DC;}.le.win{color:#22C55E;}.le.loss{color:#EF4444;}.le.err{color:#FB923C;}
+.btn-clr{font-size:10px;color:#3C4A5C;border:1px solid #192030;background:transparent;border-radius:5px;padding:3px 9px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;margin-left:6px;}
+.btn-clr:hover{color:#EF4444;border-color:#EF4444;}
+.histp{grid-column:1/-1;grid-row:2;border-top:1px solid #111827;overflow-y:auto;background:#07090E;}
+.histhdr{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:#2C3A4A;padding:9px 16px 7px;position:sticky;top:0;background:#07090E;border-bottom:1px solid #0E1520;z-index:1;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:10px;color:#2C3A4A;font-weight:500;text-align:left;padding:6px 14px;text-transform:uppercase;letter-spacing:.8px;}
+td{padding:6px 14px;border-top:1px solid #0C1220;font-size:12px;color:#6B7A8D;}
+.tw{color:#22C55E;font-weight:600;}.tl{color:#EF4444;font-weight:600;}
+.emp{padding:18px 16px;color:#1A2535;font-size:12px;}
+.combo-side{background:#0A1018;border:1px solid #192030;border-radius:8px;padding:11px;margin-top:9px;}
+.combo-side.high{border-color:rgba(34,197,94,.28);}
+.combo-side.low{border-color:rgba(239,68,68,.28);}
+.combo-note{font-size:10px;color:#4B5A6C;line-height:1.5;margin-bottom:9px;}
+::-webkit-scrollbar{width:3px;height:3px;}
+.trend-bar{display:flex;gap:8px;padding:10px 14px;background:#070C14;border-bottom:1px solid #111827;}
+.trend-item{display:flex;align-items:center;gap:6px;flex:1;justify-content:center;}
+.trend-tf{font-size:11px;font-weight:700;color:#4B5A6C;font-family:'Space Grotesk',sans-serif;}
+.trend-val{font-size:11px;font-weight:700;font-family:'Space Grotesk',sans-serif;padding:3px 8px;border-radius:6px;}
+.trend-val.uptrend{color:#22C55E;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);}
+.trend-val.downtrend{color:#EF4444;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);}
+.trend-val.neutral{color:#4B5A6C;background:rgba(75,90,108,.1);border:1px solid #192030;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#192030;border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sb">
+  <div class="logo">
+    <div class="logo-orb">🎯</div>
+    <span class="logo-name">Zone Touch</span>
+    <span class="logo-tag">10-in-1</span>
+  </div>
+  <div class="acct">
+    <div class="arow"><div class="adot" id="adot"></div><span class="albl" id="albl">Not connected</span></div>
+    <div class="abal" id="abal"></div>
+    <div class="aid"  id="aid"></div>
+    <div class="live-status" id="liveStatus"></div>
+    <button class="btn-oauth" onclick="loginWithDeriv()">
+      <svg width="14" height="14" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#fff"/><path d="M8 16a8 8 0 1 1 16 0A8 8 0 0 1 8 16z" fill="#C8102E"/></svg>
+      Login with Deriv (Live)
+    </button>
+    <div class="div-or"><span>or paste demo token</span></div>
+    <input type="password" class="tinp" id="tinp" placeholder="Demo API token…">
+    <button class="btn-demo" id="btnDemo" onclick="connectDemo()">Connect Demo</button>
+  </div>
+  <div class="slist" id="slist"></div>
+  <div class="sbfoot"><button class="btn-stopall" onclick="doStopAll()">■ Stop All Markets</button></div>
+</aside>
+<main class="main" id="main">
+  <div class="welcome">
+    <div class="wi">🎯</div>
+    <div class="wt">Zone Touch 10-in-1</div>
+    <div class="ws">Select a market from the sidebar</div>
+  </div>
+</main>
+</div>
+
+<script>
+const LOGIC_NAMES={golden:'Golden Logic',super:'Super Logic'};
+const COLORS=['#A78BFA','#22C55E','#3B82F6','#F59E0B','#EC4899','#06B6D4','#84CC16','#FB923C','#EF4444','#8B5CF6'];
+const COMBO_TYPES=[['RISE','Rise'],['FALL','Fall'],['HIGHER','Higher'],['LOWER','Lower'],['ONETOUCH','One Touch'],['NOTOUCH','No Touch'],['VANILLA_CALL','Vanilla Call'],['VANILLA_PUT','Vanilla Put']];
+let cur=null,syms=[],state={},appId='33HTyuiZsviXpxyNSLIrE';
+let tLogic=null,tMode=null,tFilter=null;
+
+async function loginWithDeriv(){
+  try{
+    G('liveStatus').textContent='Preparing login…';
+    const r=await GET('/api/oauth/url');
+    if(r.error){G('liveStatus').textContent='❌ '+r.error;return;}
+    window.location.href=r.url;
+  }catch(e){G('liveStatus').textContent='❌ '+e.message;}
+}
+
+async function connectDemo(){
+  const t=G('tinp').value.trim();if(!t)return;
+  const btn=G('btnDemo');btn.disabled=true;btn.textContent='Connecting…';
+  try{
+    const r=await POST('/api/token',{token:t});
+    G('tinp').value='';
+    if(r.error){alert('Demo login failed: '+r.error);return;}
+    showAcct(r);
+  }finally{btn.disabled=false;btn.textContent='Connect Demo';}
+}
+
+function showAcct(info){
+  G('adot').className='adot'+(info.ready?' on':'');
+  G('albl').textContent=info.ready?((info.isLive?'🔴 Live — ':'Demo — ')+(info.loginid||'Connected')):'Not connected';
+  G('abal').textContent=info.ready&&info.balance!=null?`${info.currency} ${Number(info.balance).toFixed(2)}`:'';
+  G('aid').textContent=info.loginid||'';
+}
+
+function buildSidebar(snaps){
+  const list=G('slist');list.innerHTML='';
+  snaps.forEach((s,i)=>{
+    state[s.id]=s;
+    const el=document.createElement('div');
+    el.className='si'+(cur===s.id?' active':'');el.id='si_'+s.id;el.onclick=()=>pick(s.id);
+    el.innerHTML=siInner(s,i);list.appendChild(el);
+  });
+}
+
+function siInner(s,i){
+  const pl=s.stats.profit,wr=s.stats.trades?Math.round(s.stats.wins/s.stats.trades*100):0;
+  const plT=pl!==0?(pl>0?'+':'')+'$'+Math.abs(pl).toFixed(2):'';
+  const plC=pl>0?'cg':pl<0?'cr':'cm';
+  const lName=LOGIC_NAMES[s.cfg?.logic]||s.cfg?.logic||'golden';
+  return `<div class="sinum${s.running?' on':''}">${i+1}</div>
+    <div class="simeta"><div class="sisym">${s.cfg?.symbol||'—'}</div>
+    <div class="sisub">${lName} &middot; ${s.stats.trades} trades &middot; ${wr}% WR</div></div>
+    <div class="siright"><div class="sdot${s.running?' on':''}"></div><div class="spl ${plC}">${plT}</div></div>`;
+}
+
+function patchSidebar(id){
+  const s=state[id];if(!s)return;
+  const el=G('si_'+id);if(!el)return;
+  const idx=parseInt(id.replace('slot',''));
+  el.innerHTML=siInner(s,idx);el.className='si'+(cur===id?' active':'');el.onclick=()=>pick(id);
+}
+
+async function pick(id){
+  cur=id;tLogic=null;tMode=null;tFilter=null;
+  const h=G('sTrendMode');if(h)h.remove();
+  document.querySelectorAll('.si').forEach(e=>e.classList.remove('active'));
+  const si=G('si_'+id);if(si)si.classList.add('active');
+  const idx=parseInt(id.replace('slot',''));
+  const[snap,logs,hist]=await Promise.all([GET(`/api/slot/${id}`),GET(`/api/slot/${id}/logs`),GET(`/api/slot/${id}/history`)]);
+  state[id]=snap;drawDash(id,idx,snap,logs,hist);
+}
+
+function drawDash(id,idx,snap,logs,hist){
+  const cfg=snap.cfg,stats=snap.stats;
+  const color=COLORS[idx]||'#A78BFA';
+  const logic=cfg.logic||'golden',mode=cfg.observe_mode||'ticks',filt=cfg.filter||'none';
+  const wr=stats.trades?(stats.wins/stats.trades*100).toFixed(1):'0.0';
+  const pl=stats.profit,plT=(pl>=0?'+':'')+'$'+Math.abs(pl).toFixed(2),plC=pl>0?'g':pl<0?'r':'';
+  const sOpts=syms.map(x=>`<option value="${x.symbol}"${x.symbol===cfg.symbol?' selected':''}>${x.display_name}</option>`).join('')||`<option value="${cfg.symbol}">${cfg.symbol}</option>`;
+
+  G('main').innerHTML=`
+<div class="dash">
+  <div class="hdr">
+    <div class="hdr-num" style="background:${color}18;border:1px solid ${color}35;color:${color}">${idx+1}</div>
+    <div class="hdr-info">
+      <div class="hdr-name" id="hName">${cfg.symbol}</div>
+      <div class="hdr-meta" id="hMeta">${metaLine(logic,mode,filt)}</div>
+    </div>
+    <span id="badge">${badgeHTML(snap)}</span>
+    <div class="hbtns">
+      <button class="btn-start" id="btnStart" style="background:${color}" onclick="doStart()" ${snap.running?'disabled':''}>▶ Start</button>
+      <button class="btn-stop" id="btnStop" onclick="doStop()" ${!snap.running?'disabled':''}>■ Stop</button>
+    </div>
+  </div>
+  <div class="sbar">
+    <div class="sc"><div class="sl">Trades</div><div class="sv" id="sT">${stats.trades}</div></div>
+    <div class="sc"><div class="sl">Wins</div><div class="sv g" id="sW">${stats.wins}</div></div>
+    <div class="sc"><div class="sl">Losses</div><div class="sv r" id="sL">${stats.losses}</div></div>
+    <div class="sc"><div class="sl">Win Rate</div><div class="sv" id="sWR">${wr}%</div></div>
+    <div class="sc"><div class="sl">Session P/L</div><div class="sv ${plC}" id="sPL">${plT}</div></div>
+  </div>
+  <div class="cgrid">
+    <div class="setp">
+      <div class="ph">Logic</div>
+      <div class="pills" id="logicPills" style="margin-bottom:10px">
+        <div class="pill${logic==='golden'?' on':''}" onclick="pickLogic('golden')"><div>Golden Logic</div><div class="pill-sub">Reversal Combo</div></div>
+        <div class="pill${logic==='super'?' on':''}" onclick="pickLogic('super')"><div>Super Logic</div><div class="pill-sub">Candle Sequence</div></div>
+      </div>
+      <div class="hr"></div>
+      <!-- Golden Logic settings -->
+      <div id="goldenPanel" style="${logic==='super'?'display:none':''}">
+      <div class="ph">Market &amp; Observation</div>
+      <div class="f"><label>Market</label><select id="fSym" onchange="syncMeta()">${sOpts}</select></div>
+      <div class="f"><label>Observe Mode</label>
+        <div class="pills" id="modePills">
+          <div class="pill${mode==='ticks'?' on':''}" onclick="pickMode('ticks')">Ticks</div>
+          <div class="pill${mode==='candles'?' on':''}" onclick="pickMode('candles')">M1 Candles</div>
+        </div>
+      </div>
+      <div class="row2" style="margin-bottom:9px">
+        <div class="f" style="margin-bottom:0"><label id="obsLbl">${mode==='candles'?'Candles':'Ticks'} to Observe</label><input type="number" id="fObs" value="${cfg.observe_count}" min="2"></div>
+        <div class="f" style="margin-bottom:0"><label>Reaction Range</label><input type="number" id="fRR" value="${cfg.reaction_range}" step="0.01" min="0.01"></div>
+      </div>
+      <div class="f" id="confRow">
+        <label id="confLbl">${mode==='candles'?'Confirmation Candles':'Confirmation Ticks'} back (0 = instant)</label>
+        <input type="number" id="fConf" value="${cfg.confirm_count}" min="0">
+      </div>
+      <div class="hr"></div>
+      <div class="ph">Trade</div>
+      <div class="f"><label>Stake (USD)</label><input type="number" id="fStake" value="${cfg.stake}" step="0.01" min="0.35"></div>
+      <div class="f"><label>Duration</label>
+        <div class="row3">
+          <input type="number" id="fDV" value="${cfg.duration_value}" min="1">
+          <select id="fDU">
+            <option value="t" ${cfg.duration_unit==='t'?'selected':''}>Ticks</option>
+            <option value="s" ${cfg.duration_unit==='s'?'selected':''}>Seconds</option>
+            <option value="m" ${cfg.duration_unit==='m'?'selected':''}>Minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2" style="margin-bottom:9px">
+        <div class="f" style="margin-bottom:0"><label>Barrier at HIGH</label><input type="text" id="fB1" value="${cfg.barrier1}"></div>
+        <div class="f" style="margin-bottom:0"><label>Barrier at LOW</label><input type="text" id="fB2" value="${cfg.barrier2}"></div>
+      </div>
+      <div id="comboRow">${comboBuilderHTML(cfg)}</div>
+      <div class="f"><label>Rest After LOSS (seconds)</label><input type="number" id="fRest" value="${cfg.rest_seconds}" min="0"></div>
+      <div class="tog-row" onclick="toggleSkipRest()">
+        <div class="tog-lbl">No Rest on WIN — Ride Momentum
+          <span>After a win: skip rest, keep current data, continue immediately</span>
+        </div>
+        <button class="tog${cfg.skip_rest_on_win?' on':''}" id="togSkipRest"></button>
+      </div>
+      <div class="row2" style="margin-bottom:9px">
+        <div class="f" style="margin-bottom:0"><label>Take Profit USD (session)</label><input type="number" id="fTP" value="${cfg.take_profit}" min="0" step="0.01"></div>
+        <div class="f" style="margin-bottom:0"><label>Stop Loss USD (session)</label><input type="number" id="fSL" value="${cfg.stop_loss}" min="0" step="0.01"></div>
+      </div>
+      <div class="hr"></div>
+      <div class="ph">Entry Filter</div>
+      <div class="pills" id="fpills">
+        <div class="fpill${filt==='none'?' fn':''}" onclick="pickFilter('none')"><div>None</div><div class="pill-sub">No filter</div></div>
+        <div class="fpill${filt==='momentum'?' fm':''}" onclick="pickFilter('momentum')"><div>⚡ Momentum</div><div class="pill-sub">Instant check</div></div>
+        <div class="fpill${filt==='trend'?' ft':''}" onclick="pickFilter('trend')"><div>📈 Trend</div><div class="pill-sub">M1 candle scan</div></div>
+      </div>
+      <div id="fSub">${filterSubHTML(filt,cfg)}</div>
+      </div>
+      <!-- Super Logic settings -->
+      <div id="superPanel" style="${logic!=='super'?'display:none':''}">
+      ${superSettingsHTML(cfg)}
+      </div>
+      <button class="btn-save" onclick="doSave()" style="background:${color}">Save Settings</button>
+      <div class="smsg" id="smsg" style="opacity:0"></div>
+    </div>
+    <div class="logp">
+      ${logic==='super'?`<div class="trend-bar" id="trendBar">
+        <div class="trend-item"><div class="trend-tf">M1</div><div class="trend-val neutral" id="trendM1">—</div></div>
+        <div class="trend-item"><div class="trend-tf">M5</div><div class="trend-val neutral" id="trendM5">—</div></div>
+        <div class="trend-item"><div class="trend-tf">M15</div><div class="trend-val neutral" id="trendM15">—</div></div>
+      </div>`:''}
+      <div class="log-hdr">
+        <div class="ph" style="margin-bottom:0">Live Log</div>
+        <div>
+          <button class="btn-clr" onclick="doClearLogs()">Clear Logs</button>
+          <button class="btn-clr" onclick="doClearStats()">Clear Stats</button>
+        </div>
+      </div>
+      <div class="logbox" id="logBox">${logs.slice(-150).map(leHTML).join('')}</div>
+    </div>
+    <div class="histp">
+      <div class="histhdr">Trade History</div>
+      <div id="histWrap">
+        ${hist.length?`<table><thead><tr><th>Time</th><th>Symbol</th><th>Contract</th><th>Barrier</th><th>Stake</th><th>Result</th><th>P/L</th></tr></thead><tbody id="histBody">${hist.map(hrHTML).join('')}</tbody></table>`:`<div class="emp">No trades yet</div>`}
+      </div>
+    </div>
+  </div>
+</div>`;
+  const lb=G('logBox');if(lb)lb.scrollTop=lb.scrollHeight;
+}
+
+function comboBuilderHTML(cfg){
+  return `
+  <div class="hr"></div>
+  <div class="ph">Golden Logic — Combo Builder</div>
+  <div class="combo-note">Only the side price <b>touches first</b> fires. The primary is a One Touch on that side's barrier. Attach <b>one</b> extra option to each side — it fires the same instant as the touch. WIN &amp; momentum/rest are decided by the <b>primary One Touch only</b>.</div>
+  ${comboSideHTML('high',cfg)}
+  ${comboSideHTML('low',cfg)}`;
+}
+function comboSideHTML(side,cfg){
+  const on=!!cfg['combo_'+side+'_on'];
+  const type=cfg['combo_'+side+'_type']||(side==='high'?'FALL':'RISE');
+  const label=side==='high'?'Attach to HIGH touch (+barrier)':'Attach to LOW touch (−barrier)';
+  return `
+  <div class="combo-side ${side}">
+    <div class="tog-row" style="margin-bottom:${on?'9px':'0'}" onclick="toggleCombo('${side}')">
+      <div class="tog-lbl">${label}<span>Fires simultaneously with the primary One Touch</span></div>
+      <button class="tog${on?' on':''}" id="togCombo_${side}"></button>
+    </div>
+    <div id="comboFields_${side}" style="${on?'':'display:none'}">
+      <div class="f"><label>Attached Option</label>
+        <select id="cType_${side}" onchange="comboTypeChange('${side}')">${comboTypeOptions(type)}</select>
+      </div>
+      <div class="f" id="cBarrierRow_${side}" style="${comboNeedsBarrier(type)?'':'display:none'}">
+        <label>Barrier (e.g. +2 / -2 / 2.50)</label>
+        <input type="text" id="cBarrier_${side}" value="${cfg['combo_'+side+'_barrier']||(side==='high'?'+2':'-2')}">
+      </div>
+      <div class="row2" style="margin-bottom:0">
+        <div class="f" style="margin-bottom:0"><label>Duration</label>
+          <div class="row3">
+            <input type="number" id="cDV_${side}" value="${cfg['combo_'+side+'_dv']||5}" min="1">
+            <select id="cDU_${side}">
+              <option value="t" ${(cfg['combo_'+side+'_du']||'t')==='t'?'selected':''}>Tk</option>
+              <option value="s" ${cfg['combo_'+side+'_du']==='s'?'selected':''}>Sec</option>
+              <option value="m" ${cfg['combo_'+side+'_du']==='m'?'selected':''}>Min</option>
+            </select>
+          </div>
+        </div>
+        <div class="f" style="margin-bottom:0"><label>Stake (USD)</label>
+          <input type="number" id="cStake_${side}" value="${cfg['combo_'+side+'_stake']||1}" step="0.01" min="0.35"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function comboTypeOptions(sel){return COMBO_TYPES.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}>${n}</option>`).join('');}
+function comboNeedsBarrier(t){return t!=='RISE'&&t!=='FALL';}
+function comboTypeChange(side){const t=gv('cType_'+side);const row=G('cBarrierRow_'+side);if(row)row.style.display=comboNeedsBarrier(t)?'':'none';}
+function toggleCombo(side){const b=G('togCombo_'+side);const on=!b.classList.contains('on');b.classList.toggle('on',on);const f=G('comboFields_'+side);if(f)f.style.display=on?'':'none';}
+
+function filterSubHTML(filt,cfg){
+  if(filt==='momentum')return`<div class="fbox"><div class="fbox-title m">⚡ Momentum Settings</div><div class="row2"><div class="f" style="margin-bottom:0"><label>Ticks/Candles to check</label><input type="number" id="fMC" value="${cfg.momentum_candles}" min="1" max="10"></div><div class="f" style="margin-bottom:0"><label>Body multiplier</label><input type="number" id="fMB" value="${cfg.momentum_body_mult}" step="0.1" min="0"></div></div></div>`;
+  if(filt==='trend')return`<div class="fbox"><div class="fbox-title t">📈 Trend Settings</div><div class="row2" style="margin-bottom:8px"><div class="f" style="margin-bottom:0"><label>M1 Candles to check</label><input type="number" id="fTC" value="${cfg.trend_candles}" min="3" max="20"></div><div class="f" style="margin-bottom:0"><label>Min body size</label><input type="number" id="fTB" value="${cfg.min_body_size}" step="0.01" min="0.01"></div></div><div class="row2"><div class="f" style="margin-bottom:0"><label>Max overlap (0–1)</label><input type="number" id="fTO" value="${cfg.max_overlap}" step="0.05" min="0" max="1"></div><div class="f" style="margin-bottom:0"><label>Min consec. candles</label><input type="number" id="fTD" value="${cfg.min_dir_candles}" min="2" max="10"></div></div></div>`;
+  return'';
+}
+
+function badgeHTML(snap){
+  if(!snap.running) return`<span class="badge stp">Stopped</span>`;
+  if(snap.busy||snap.phase==='trading') return`<span class="badge trd">● In Trade</span>`;
+  // Super Logic — show its own state
+  if(snap.cfg?.logic==='super'){
+    if(snap.superState==='triggering') return`<span class="badge con">● Triggering ${snap.superTriggerCount||0}/${snap.superOppositeCount||2}</span>`;
+    return`<span class="badge mon">● Scanning</span>`;
+  }
+  // Golden Logic
+  if(snap.liveCount<(snap.cfg?.observe_count||5)) return`<span class="badge col">● Collecting ${snap.liveCount}/${snap.cfg?.observe_count||5}</span>`;
+  if(snap.phase==='confirming') return`<span class="badge con">● Confirming</span>`;
+  return`<span class="badge mon">● Monitoring</span>`;
+}
+
+function metaLine(logic,mode,filter){
+  if(logic==='super') return 'Super Logic · M1 Candles (core) · M5+M15 (trend)';
+  return `Golden Logic · ${mode==='candles'?'M1 Candles':'Ticks'} · Filter: ${filter}`;
+}
+
+function pickLogic(n){
+  tLogic=n;
+  document.querySelectorAll('#logicPills .pill').forEach(e=>e.classList.remove('on'));
+  const idx=n==='golden'?0:1;
+  const pills=document.querySelectorAll('#logicPills .pill');
+  if(pills[idx])pills[idx].classList.add('on');
+  const gp=G('goldenPanel'),sp=G('superPanel');
+  if(gp)gp.style.display=n==='super'?'none':'';
+  if(sp)sp.style.display=n==='super'?'':'none';
+  syncMeta();
+}
+
+function pickMode(mode){
+  tMode=mode;
+  document.querySelectorAll('#modePills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&mode==='ticks')||(i===1&&mode==='candles')));
+  const ol=G('obsLbl');if(ol)ol.textContent=(mode==='candles'?'Candles':'Ticks')+' to Observe';
+  const cl=G('confLbl');if(cl)cl.textContent=(mode==='candles'?'Confirmation Candles':'Confirmation Ticks')+' back (0 = instant)';
+  syncMeta();
+}
+
+function pickFilter(f){
+  tFilter=f;
+  const pills=G('fpills').querySelectorAll('.fpill');
+  pills.forEach(p=>p.className='fpill');
+  const map={none:'fn',momentum:'fm',trend:'ft'};
+  const idx=f==='none'?0:f==='momentum'?1:2;
+  if(pills[idx])pills[idx].className='fpill '+map[f];
+  G('fSub').innerHTML=filterSubHTML(f,state[cur]?.cfg||{});
+  syncMeta();
+}
+
+function toggleSkipRest(){const b=G('togSkipRest');b.classList.toggle('on',!b.classList.contains('on'));}
+
+function syncMeta(){
+  const sym=gv('fSym')||'';
+  const logic=tLogic||state[cur]?.cfg?.logic||'golden';
+  const mode=tMode||state[cur]?.cfg?.observe_mode||'ticks';
+  const filter=tFilter||state[cur]?.cfg?.filter||'none';
+  const hn=G('hName');if(hn&&sym)hn.textContent=sym;
+  const hm=G('hMeta');if(hm)hm.textContent=metaLine(logic,mode,filter);
+  if(sym&&cur){const si=G('si_'+cur);if(si){const ss=si.querySelector('.sisym');if(ss)ss.textContent=sym;}}
+}
+
+async function doSave(){
+  if(!cur)return;
+  const logic=tLogic||state[cur]?.cfg?.logic||'golden';
+  const mode=tMode||state[cur]?.cfg?.observe_mode||'ticks';
+  const filter=tFilter||state[cur]?.cfg?.filter||'none';
+  const prev=state[cur]?.cfg||{};
+  const cfg={
+    symbol:gv('fSym')||prev.symbol,logic,observe_mode:mode,observe_count:Number(gv('fObs')||prev.observe_count),
+    reaction_range:parseFloat(gv('fRR')||prev.reaction_range||0.3),confirm_count:Number(gv('fConf')||0),
+    stake:Number(gv('fStake')||prev.stake),duration_value:Number(gv('fDV')||prev.duration_value),duration_unit:gv('fDU')||prev.duration_unit||'t',
+    barrier1:(gv('fB1')||prev.barrier1||'').trim(),barrier2:(gv('fB2')||prev.barrier2||'').trim(),
+    rest_seconds:Number(gv('fRest')||prev.rest_seconds||0),
+    skip_rest_on_win:G('togSkipRest')?G('togSkipRest').classList.contains('on'):(prev.skip_rest_on_win||false),
+    take_profit:parseFloat(gv('fTP')||0),stop_loss:parseFloat(gv('fSL')||0),
+    filter,momentum_candles:Number(gv('fMC')||3),momentum_body_mult:parseFloat(gv('fMB')||1),
+    trend_candles:Number(gv('fTC')||5),min_body_size:parseFloat(gv('fTB')||0.05),
+    max_overlap:parseFloat(gv('fTO')||0.5),min_dir_candles:Number(gv('fTD')||3),
+    // Super Logic settings
+    super_same_color_count:Number(gv('sSameCount')||prev.super_same_color_count||3),
+    super_opposite_count:Number(gv('sOppCount')||prev.super_opposite_count||2),
+    super_trend_enabled:G('togSuperTrend')?G('togSuperTrend').classList.contains('on'):(prev.super_trend_enabled!==false),
+    super_trend_mode:gv('sTrendMode')||prev.super_trend_mode||'m1_5_15',
+    super_trend_min_match:Number(gv('sMinMatch')||prev.super_trend_min_match||2),
+    super_cooldown_seconds:Number(gv('sCooldown')||prev.super_cooldown_seconds||30),
+  };
+  ['high','low'].forEach(side=>{
+    const tog=G('togCombo_'+side);
+    if(tog){
+      cfg['combo_'+side+'_on']=tog.classList.contains('on');
+      cfg['combo_'+side+'_type']=gv('cType_'+side)||'RISE';
+      cfg['combo_'+side+'_barrier']=(gv('cBarrier_'+side)||'').trim();
+      cfg['combo_'+side+'_dv']=Number(gv('cDV_'+side)||5);
+      cfg['combo_'+side+'_du']=gv('cDU_'+side)||'t';
+      cfg['combo_'+side+'_stake']=Number(gv('cStake_'+side)||1);
+    }else{
+      ['on','type','barrier','dv','du','stake'].forEach(k=>{const key='combo_'+side+'_'+k;if(prev[key]!==undefined)cfg[key]=prev[key];});
+    }
+  });
+  await POST(`/api/slot/${cur}/cfg`,cfg);
+  if(state[cur])state[cur].cfg={...state[cur].cfg,...cfg};
+  tLogic=null;tMode=null;tFilter=null;
+  const m=G('smsg');if(m){m.textContent='Saved ✓';m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2000);}
+}
+
+async function doStart(){
+  if(!cur)return;
+  const btn=G('btnStart');
+  if(btn){btn.disabled=true;btn.textContent='Starting…';}
+  await doSave(); // always save current settings before starting
+  const r=await POST(`/api/slot/${cur}/start`);
+  if(r.error){alert(r.error);if(btn){btn.disabled=false;btn.textContent='▶ Start';}}
+}
+async function doStop(){if(cur)await POST(`/api/slot/${cur}/stop`);}
+async function doStopAll(){if(confirm('Stop all running markets?'))await POST('/api/stopall');}
+async function doClearLogs(){if(!cur)return;await POST(`/api/slot/${cur}/clearlogs`);const lb=G('logBox');if(lb)lb.innerHTML='';}
+async function doClearStats(){
+  if(!cur)return;
+  if(!confirm('Clear all stats, P/L and history for this market?'))return;
+  await POST(`/api/slot/${cur}/clearstats`);
+  st('sT','0');st('sW','0');st('sL','0');st('sWR','0.0%');
+  const pe=G('sPL');if(pe){pe.textContent='+$0.00';pe.className='sv';}
+  const hw=G('histWrap');if(hw)hw.innerHTML='<div class="emp">No trades yet</div>';
+}
+
+function updateStats(snap){
+  if(!snap)return;
+  const stats=snap.stats||{};
+  const wr=stats.trades?(stats.wins/stats.trades*100).toFixed(1):'0.0';
+  const pl=stats.profit||0,plT=(pl>=0?'+':'')+'$'+Math.abs(pl).toFixed(2),plC=pl>0?'g':pl<0?'r':'';
+  st('sT',stats.trades||0);st('sW',stats.wins||0);st('sL',stats.losses||0);st('sWR',wr+'%');
+  const pe=G('sPL');if(pe){pe.textContent=plT;pe.className='sv '+plC;}
+  const b=G('badge');if(b)b.innerHTML=badgeHTML(snap);
+  const bs=G('btnStart');if(bs)bs.disabled=snap.running;
+  const ss=G('btnStop');if(ss)ss.disabled=!snap.running;
+}
+
+function leHTML(e){const ts=new Date(e.time).toLocaleTimeString();const c=e.level==='win'?'win':e.level==='loss'?'loss':e.level==='err'?'err':e.level==='ok'?'ok':'';return`<div class="le ${c}"><span class="ts">${ts}</span>${esc(e.msg)}</div>`;}
+function hrHTML(h){const ts=new Date(h.time).toLocaleTimeString(),p=Number(h.profit);return`<tr><td>${ts}</td><td>${h.symbol}</td><td>${h.type}</td><td>${h.barrier??'—'}</td><td>$${Number(h.stake).toFixed(2)}</td><td class="${h.won?'tw':'tl'}">${h.won?'WIN':'LOSS'}</td><td class="${p>=0?'tw':'tl'}">${p>=0?'+':''}$${Math.abs(p).toFixed(2)}</td></tr>`;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function appendLog(e){const lb=G('logBox');if(!lb)return;const d=document.createElement('div');d.innerHTML=leHTML(e);lb.appendChild(d.firstChild);lb.scrollTop=lb.scrollHeight;}
+function prependHist(h){let body=G('histBody');if(!body){const hw=G('histWrap');if(hw)hw.innerHTML=`<table><thead><tr><th>Time</th><th>Symbol</th><th>Contract</th><th>Barrier</th><th>Stake</th><th>Result</th><th>P/L</th></tr></thead><tbody id="histBody">${hrHTML(h)}</tbody></table>`;return;}const t=document.createElement('tbody');t.innerHTML=hrHTML(h);body.insertBefore(t.firstChild,body.firstChild);}
+
+function connectSSE(){
+  const es=new EventSource('/api/stream');
+  es.onmessage=e=>{try{handle(JSON.parse(e.data));}catch{}};
+  es.onerror=()=>{es.close();setTimeout(connectSSE,3000);};
+}
+
+function handle(d){
+  switch(d.type){
+    case 'trend':
+      if(d.slotId===cur){
+        const labels={uptrend:'▲ Uptrend',downtrend:'▼ Downtrend',neutral:'— Neutral'};
+        ['m1','m5','m15'].forEach(tf=>{
+          const el=G('trend'+tf.toUpperCase());
+          if(!el)return;
+          const val=d.data[tf]||'neutral';
+          el.textContent=labels[val]||val;
+          el.className='trend-val '+val;
+        });
+      }
+      break;
+    case 'init': appId=d.appId||appId;showAcct(d.account);buildSidebar(d.slots);break;
+    case 'account': showAcct(d.data);break;
+    case 'live_status':
+      const ls=G('liveStatus');
+      if(ls){ls.textContent=d.msg;ls.style.color=d.status==='ready'?'#22C55E':d.status==='error'?'#EF4444':'#FB923C';}
+      break;
+    case 'state':
+      if(!state[d.slotId])state[d.slotId]={};Object.assign(state[d.slotId],d.data);
+      patchSidebar(d.slotId);if(d.slotId===cur)updateStats(state[d.slotId]);break;
+    case 'log': if(d.slotId===cur)appendLog(d.entry);break;
+    case 'log_cleared': if(d.slotId===cur){const lb=G('logBox');if(lb)lb.innerHTML='';}break;
+    case 'stats_cleared':
+      if(state[d.slotId]){state[d.slotId].stats={trades:0,wins:0,losses:0,profit:0};patchSidebar(d.slotId);}
+      if(d.slotId===cur){st('sT','0');st('sW','0');st('sL','0');st('sWR','0.0%');const pe=G('sPL');if(pe){pe.textContent='+$0.00';pe.className='sv';}const hw=G('histWrap');if(hw)hw.innerHTML='<div class="emp">No trades yet</div>';}
+      break;
+    case 'trade': if(d.slotId===cur)prependHist(d.data);break;
+  }
+}
+
+function superSettingsHTML(cfg){
+  const trendMode=cfg.super_trend_mode||'m1_5_15';
+  const trendOn=cfg.super_trend_enabled!==false;
+  return `
+  <div class="ph">Market</div>
+  <div class="f"><label>Market</label><select id="fSym" onchange="syncMeta()">${(typeof syms!=='undefined'?syms:[]).map(x=>`<option value="${x.symbol}"${x.symbol===cfg.symbol?' selected':''}>${x.display_name}</option>`).join('')||`<option value="${cfg.symbol}">${cfg.symbol}</option>`}</select></div>
+  <div class="hr"></div>
+  <div class="ph">Candle Sequence</div>
+  <div class="row2" style="margin-bottom:9px">
+    <div class="f" style="margin-bottom:0"><label>Same-Color Candles (min)</label><input type="number" id="sSameCount" value="${cfg.super_same_color_count||3}" min="1"></div>
+    <div class="f" style="margin-bottom:0"><label>Opposite Trigger Candles</label><input type="number" id="sOppCount" value="${cfg.super_opposite_count||2}" min="1"></div>
+  </div>
+  <div class="hr"></div>
+  <div class="ph">Trade</div>
+  <div class="f"><label>Stake (USD)</label><input type="number" id="fStake" value="${cfg.stake}" step="0.01" min="0.35"></div>
+  <div class="f"><label>Duration</label>
+    <div class="row3">
+      <input type="number" id="fDV" value="${cfg.duration_value}" min="1">
+      <select id="fDU">
+        <option value="t" ${cfg.duration_unit==='t'?'selected':''}>Ticks</option>
+        <option value="s" ${cfg.duration_unit==='s'?'selected':''}>Seconds</option>
+        <option value="m" ${cfg.duration_unit==='m'?'selected':''}>Minutes</option>
+      </select>
+    </div>
+  </div>
+  <div class="row2" style="margin-bottom:9px">
+    <div class="f" style="margin-bottom:0"><label>BUY Barrier (+)</label><input type="text" id="fB1" value="${cfg.barrier1}"></div>
+    <div class="f" style="margin-bottom:0"><label>SELL Barrier (−)</label><input type="text" id="fB2" value="${cfg.barrier2}"></div>
+  </div>
+  <div class="f"><label>Cooldown After Trade (seconds)</label><input type="number" id="sCooldown" value="${cfg.super_cooldown_seconds||30}" min="0"></div>
+  <div class="row2" style="margin-bottom:9px">
+    <div class="f" style="margin-bottom:0"><label>Take Profit USD (session)</label><input type="number" id="fTP" value="${cfg.take_profit}" min="0" step="0.01"></div>
+    <div class="f" style="margin-bottom:0"><label>Stop Loss USD (session)</label><input type="number" id="fSL" value="${cfg.stop_loss}" min="0" step="0.01"></div>
+  </div>
+  <div class="hr"></div>
+  <div class="ph">Trend Confirmation</div>
+  <div class="tog-row" onclick="toggleSuperTrend()">
+    <div class="tog-lbl">Enable Trend Confirmation
+      <span>Final filter before every trade execution</span>
+    </div>
+    <button class="tog${trendOn?' on':''}" id="togSuperTrend"></button>
+  </div>
+  <div id="superTrendFields" style="${trendOn?'':'display:none'}">
+    <div class="f" style="margin-top:9px"><label>Trend Confirmation Mode</label>
+      <div class="pills" style="margin-top:4px" id="trendModePills">
+        <div class="pill${trendMode==='m1_5_15'?' on':''}" onclick="pickTrendMode('m1_5_15')"><div>M1-5-15</div><div class="pill-sub">3 timeframes</div></div>
+        <div class="pill${trendMode==='m1_5'?' on':''}" onclick="pickTrendMode('m1_5')"><div>M1-5</div><div class="pill-sub">Either matches</div></div>
+      </div>
+    </div>
+    <div id="minMatchRow" style="${trendMode==='m1_5'?'display:none':''}">
+      <div class="f"><label>Min Matching Timeframes (M1-5-15 mode)</label><input type="number" id="sMinMatch" value="${cfg.super_trend_min_match||2}" min="1" max="3"></div>
+    </div>
+  </div>`;
+}
+
+function toggleSuperTrend(){
+  const b=G('togSuperTrend');b.classList.toggle('on',!b.classList.contains('on'));
+  const f=G('superTrendFields');if(f)f.style.display=b.classList.contains('on')?'':'none';
+}
+function pickTrendMode(m){
+  document.querySelectorAll('#trendModePills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&m==='m1_5_15')||(i===1&&m==='m1_5')));
+  const r=G('minMatchRow');if(r)r.style.display=m==='m1_5'?'none':'';
+  const inp=G('sTrendMode')||{};
+  // store in hidden field or just read from pills state in doSave
+  if(!G('sTrendMode')){const h=document.createElement('input');h.type='hidden';h.id='sTrendMode';h.value=m;document.body.appendChild(h);}
+  else G('sTrendMode').value=m;
+}
+
+const G=id=>document.getElementById(id);
+const gv=id=>{const e=G(id);return e?e.value:null;};
+const st=(id,v)=>{const e=G(id);if(e)e.textContent=v;};
+const GET=url=>fetch(url).then(r=>r.json());
+const POST=(url,body)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
+
+async function loadSymbols(){try{const d=await GET('/api/symbols');if(Array.isArray(d))syms=d;}catch{}}
+(async function init(){await loadSymbols();connectSSE();})();
+</script>
+</body>
+</html>
