@@ -1,0 +1,1200 @@
+const express   = require('express');
+const WebSocket = require('ws');
+const crypto    = require('crypto');
+const path      = require('path');
+const fs        = require('fs');
+
+const app = express();
+app.use(express.json());
+
+const PORT         = process.env.PORT         || 3000;
+const APP_ID_LIVE  = process.env.DERIV_APP_ID || '33HTyuiZsviXpxyNSLIrE';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'https://sharpshooter-vfb2.onrender.com/callback';
+const WS_DEMO      = 'wss://ws.binaryws.com/websockets/v3?app_id=1089';
+const STATE_FILE   = path.join(__dirname, 'state.json');
+
+const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+function serverLog(msg, data) { console.log(`[${new Date().toISOString()}] ${msg}`, data || ''); }
+
+process.on('uncaughtException',  e => serverLog('uncaughtException',  { err: e && e.message }));
+process.on('unhandledRejection', e => serverLog('unhandledRejection', { err: e && e.message ? e.message : String(e) }));
+
+// ─── PKCE helpers ─────────────────────────────────────────────────────────────
+function base64url(buf){ return buf.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); }
+function generateCodeVerifier(){ return base64url(crypto.randomBytes(32)); }
+function generateCodeChallenge(v){ return base64url(crypto.createHash('sha256').update(v).digest()); }
+const oauthPending = new Map();
+
+// ─── SSE ─────────────────────────────────────────────────────────────────────
+const clients = [];
+function push(data){
+  const s = `data: ${JSON.stringify(data)}\n\n`;
+  clients.forEach(r => { try { r.write(s); } catch {} });
+}
+
+// ─── Deriv account ────────────────────────────────────────────────────────────
+class Account {
+  constructor(){
+    this.token = ''; this.ws = null; this.ready = false;
+    this.loginid = null; this.balance = null; this.currency = null;
+    this.reqs = new Map(); this.watchers = new Map(); this.rid = 1;
+    this.pinger = null; this._reconnecting = false;
+    this.liveAccessToken = null; this.liveAccountId = null; this.isLive = false;
+  }
+
+  setToken(t){
+    if (!t || t === this.token) return;
+    this.token = t; this.ready = false; this.isLive = false;
+    if (this.ws) try { this.ws.close(); } catch {}
+  }
+
+  _attachHandlers(ws){
+    // Guard: this.ws may be swapped to a NEW connection before this (older) socket's
+    // own async events finish firing (e.g. after ws.close()). Without this check, a
+    // stale socket's 'close'/'error'/'message' events would wrongly mutate shared
+    // account state (this.ready, this.pinger, etc.) belonging to the CURRENT connection,
+    // causing spurious disconnect/reconnect flapping. Every handler below first confirms
+    // it's still reporting on the connection that is actually active.
+    ws.on('message', raw => {
+      if (ws !== this.ws) return;
+      let m; try { m = JSON.parse(raw); } catch { return; }
+      if (m.req_id && this.reqs.has(m.req_id)) { this.reqs.get(m.req_id)(m); this.reqs.delete(m.req_id); }
+      if (m.msg_type === 'proposal_open_contract') {
+        const c = m.proposal_open_contract;
+        if (c && this.watchers.has(c.contract_id)) this.watchers.get(c.contract_id)(m);
+      }
+      if (m.msg_type === 'balance') { this.balance = m.balance?.balance; push({ type:'account', data:this.info() }); }
+    });
+    ws.on('error', e => { if (ws !== this.ws) return; serverLog('WS error', { err: e.message }); });
+    ws.on('close', () => {
+      if (ws !== this.ws) return; // stale socket — a newer connection already replaced it, ignore
+      this.ready = false;
+      if (this.pinger) clearInterval(this.pinger);
+      push({ type:'account', data:this.info() });
+      if (this.isLive && this.liveAccessToken && this.liveAccountId && !this._reconnecting) {
+        this._reconnecting = true;
+        serverLog('Live disconnected — refreshing OTP in 5s');
+        setTimeout(() => this.refreshOTP(), 5000);
+      } else if (!this.isLive && this.token && !this._reconnecting) {
+        this._reconnecting = true;
+        serverLog('Demo disconnected — reconnecting in 4s');
+        setTimeout(() => { this.connect().catch(e => { this._reconnecting = false; serverLog('Reconnect failed', { err: e.message }); }); }, 4000);
+      }
+    });
+  }
+
+  connect(){
+    return new Promise((resolve, reject) => {
+      if (!this.token) return reject(new Error('No token — enter your demo API token'));
+      if (this.ws) try { this.ws.close(); } catch {}
+      const ws = new WebSocket(WS_DEMO);
+      this.ws = ws; this.isLive = false;
+      ws.on('open', () => {
+        this.send({ authorize: this.token }).then(r => {
+          if (r.error) return reject(new Error('Auth failed: ' + r.error.message));
+          this.ready = true;
+          this.loginid = r.authorize?.loginid;
+          this.balance = r.authorize?.balance;
+          this.currency = r.authorize?.currency;
+          this._reconnecting = false;
+          serverLog('Demo account connected', { loginid: this.loginid });
+          this.pinger = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ ping: 1 })); }, 25000);
+          this.send({ balance: 1, subscribe: 1 }).catch(() => {});
+          push({ type:'account', data:this.info() });
+          resolve();
+        }).catch(e => { this._reconnecting = false; reject(e); });
+      });
+      this._attachHandlers(ws);
+    });
+  }
+
+  connectLive(wssUrl, accountId){
+    return new Promise((resolve, reject) => {
+      if (this.ws) try { this.ws.close(); } catch {}
+      const ws = new WebSocket(wssUrl);
+      this.ws = ws; this.isLive = true; this.loginid = accountId;
+      ws.on('open', () => {
+        this.ready = true; this._reconnecting = false;
+        serverLog('Live account connected', { loginid: accountId });
+        this.pinger = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ ping: 1 })); }, 25000);
+        this.send({ balance: 1, subscribe: 1 }).catch(() => {});
+        push({ type:'account', data:this.info() });
+        resolve();
+      });
+      this._attachHandlers(ws);
+      ws.on('error', e => reject(e));
+    });
+  }
+
+  async refreshOTP(){
+    try {
+      const otpRes = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${this.liveAccountId}/otp`, {
+        method:'POST', headers:{ 'Authorization':`Bearer ${this.liveAccessToken}`, 'Deriv-App-ID':APP_ID_LIVE },
+      });
+      const otpData = await otpRes.json();
+      if (!otpData.data?.url) throw new Error('No URL in OTP response');
+      await this.connectLive(otpData.data.url, this.liveAccountId);
+      this._reconnecting = false;
+    } catch (err) {
+      this._reconnecting = false; this.liveAccessToken = null; this.liveAccountId = null;
+      serverLog('OTP refresh failed', { err: err.message });
+      push({ type:'live_status', status:'expired', msg:'⚠ Session expired — please login again' });
+    }
+  }
+
+  send(obj){
+    return new Promise((resolve, reject) => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return reject(new Error('Account socket not open'));
+      const req_id = this.rid++;
+      this.reqs.set(req_id, resolve);
+      this.ws.send(JSON.stringify({ ...obj, req_id }));
+      setTimeout(() => { if (this.reqs.has(req_id)) { this.reqs.delete(req_id); reject(new Error('Request timed out')); } }, 15000);
+    });
+  }
+
+  buy(params){ return this.send({ buy: 1, price: params.amount, parameters: params }); }
+
+  watchContract(id){
+    return new Promise((resolve, reject) => {
+      let maxSpot = null, minSpot = null, entrySpot = null, barrier = null;
+      const t = setTimeout(() => { this.watchers.delete(id); reject(new Error('Watch timed out')); }, 5 * 60 * 1000);
+      this.watchers.set(id, msg => {
+        const c = msg.proposal_open_contract; if (!c) return;
+        const cs = parseFloat(c.current_spot);
+        if (!isNaN(cs)) { if (maxSpot === null || cs > maxSpot) maxSpot = cs; if (minSpot === null || cs < minSpot) minSpot = cs; }
+        if (c.entry_spot != null) entrySpot = parseFloat(c.entry_spot);
+        if (c.barrier != null)    barrier   = parseFloat(c.barrier);
+        if (c.is_sold || c.is_expired) {
+          clearTimeout(t); this.watchers.delete(id);
+          this.send({ forget: msg.subscription?.id }).catch(() => {});
+          c._maxSpot = maxSpot; c._minSpot = minSpot; c._entrySpot = entrySpot; c._barrier = barrier;
+          resolve(c);
+        }
+      });
+      this.send({ proposal_open_contract: 1, contract_id: id, subscribe: 1 })
+        .catch(e => { clearTimeout(t); this.watchers.delete(id); reject(e); });
+    });
+  }
+
+  openTickStream(symbol, cb){
+    const ws = new WebSocket(WS_DEMO);
+    ws.on('open', () => ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 })));
+    ws.on('message', raw => {
+      let m; try { m = JSON.parse(raw); } catch { return; }
+      if (m.msg_type === 'tick' && m.tick) cb(parseFloat(m.tick.quote));
+    });
+    ws.on('error', () => {}); return ws;
+  }
+
+  info(){ return { ready:this.ready, loginid:this.loginid, balance:this.balance, currency:this.currency, isLive:this.isLive }; }
+}
+
+const acct = new Account();
+
+// ─── Candle Manager ────────────────────────────────────────────────────────────
+// Deriv's API no longer streams OHLC/candles — only raw ticks. This is now the
+// SINGLE source of truth for candles in the bot: it owns one shared tick
+// WebSocket per symbol (ref-counted — 3 slots watching the same symbol still
+// means only one live connection), builds candles itself from tick epoch/price,
+// and only ever hands out FULLY CLOSED candles. No strategy builds its own
+// candles or talks to ticks directly for candle purposes; everything (Golden
+// Logic, Super Logic, trend detection, and any future logic) subscribes here.
+//
+// Candle-close detection: a tick's epoch maps to a window
+// (Math.floor(epoch/granularity)*granularity). While ticks keep landing in the
+// same window, that window's open/high/low/close is updated. The moment a tick
+// lands in a NEW window, the previous window's candle is complete and is
+// emitted exactly once — matching Deriv's own recommended approach.
+//
+// On first subscribe for a symbol+granularity, a one-time ticks_history
+// (style=candles) fetch backfills recent completed candles so strategies don't
+// have to wait up to 15 minutes for the first live M15 candle to close. After
+// that, everything is built from live ticks — no further polling, ever,
+// unless the connection drops and needs to resync.
+class CandleManager {
+  constructor(){
+    this.symbols = new Map(); // symbol -> { ws, grans: Map(granularity -> GranState), tickSubs: Set(cb), attempt }
+  }
+
+  // Subscribe to completed candles for a symbol at a given granularity (seconds).
+  // cb(candle) fires once per fully-closed candle: { epoch, open, high, low, close }.
+  // Returns an unsubscribe function.
+  subscribe(symbol, granularity, cb){
+    const entry = this._entry(symbol);
+    let g = entry.grans.get(granularity);
+    if (!g) { g = { current:null, subs:new Set(), backfilled:false }; entry.grans.set(granularity, g); }
+    g.subs.add(cb);
+
+    this._ensureConnected(symbol);
+    if (!g.backfilled) this._backfill(symbol, granularity);
+
+    return () => {
+      g.subs.delete(cb);
+      if (g.subs.size === 0) entry.grans.delete(granularity);
+      this._maybeTeardown(symbol);
+    };
+  }
+
+  // Subscribe to raw ticks for a symbol — used by Demo Mode to track entry price
+  // and barrier touches live, without opening a second connection to the same feed.
+  // cb({epoch, quote}) fires on every tick. Returns an unsubscribe function.
+  subscribeTicks(symbol, cb){
+    const entry = this._entry(symbol);
+    entry.tickSubs.add(cb);
+    this._ensureConnected(symbol);
+    return () => {
+      entry.tickSubs.delete(cb);
+      this._maybeTeardown(symbol);
+    };
+  }
+
+  _entry(symbol){
+    let entry = this.symbols.get(symbol);
+    if (!entry) { entry = { ws:null, grans:new Map(), tickSubs:new Set(), attempt:0 }; this.symbols.set(symbol, entry); }
+    return entry;
+  }
+
+  _maybeTeardown(symbol){
+    const entry = this.symbols.get(symbol);
+    if (entry && entry.grans.size === 0 && entry.tickSubs.size === 0) this._teardown(symbol);
+  }
+
+  _ensureConnected(symbol){
+    const entry = this.symbols.get(symbol);
+    if (!entry || entry.ws) return;
+    const ws = new WebSocket(WS_DEMO);
+    entry.ws = ws;
+    ws.on('open', () => { if (ws !== entry.ws) return; entry.attempt = 0; ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 })); });
+    ws.on('message', raw => {
+      if (ws !== entry.ws) return;
+      let m; try { m = JSON.parse(raw); } catch { return; }
+      if (m.msg_type === 'tick' && m.tick) this._onTick(symbol, m.tick);
+    });
+    ws.on('error', () => {});
+    ws.on('close', () => {
+      if (ws !== entry.ws) return; // stale socket, already replaced — ignore
+      entry.ws = null;
+      if (!this.symbols.has(symbol) || (entry.grans.size === 0 && entry.tickSubs.size === 0)) return; // no subscribers left, don't reconnect
+      const delay = Math.min(30000, 2000 * Math.pow(2, entry.attempt++));
+      serverLog(`Candle Manager: tick stream for ${symbol} dropped — reconnecting in ${Math.round(delay/1000)}s`);
+      setTimeout(() => {
+        if (!this.symbols.has(symbol)) return;
+        // Resync every active granularity via backfill so no gap corrupts the in-progress candle
+        entry.grans.forEach((g, gran) => { g.backfilled = false; g.current = null; this._backfill(symbol, gran); });
+        this._ensureConnected(symbol);
+      }, delay);
+    });
+  }
+
+  _onTick(symbol, tick){
+    const entry = this.symbols.get(symbol);
+    if (!entry) return;
+    const price = parseFloat(tick.quote);
+    const epoch = Number(tick.epoch);
+    if (isNaN(price) || isNaN(epoch)) return;
+    entry.tickSubs.forEach(cb => { try { cb({ epoch, quote:price }); } catch (e) { serverLog('Candle Manager tick callback error', { err:e.message }); } });
+    entry.grans.forEach((g, granularity) => {
+      const windowStart = Math.floor(epoch / granularity) * granularity;
+      if (!g.current) { g.current = { epoch:windowStart, open:price, high:price, low:price, close:price }; return; }
+      if (windowStart === g.current.epoch) {
+        if (price > g.current.high) g.current.high = price;
+        if (price < g.current.low)  g.current.low  = price;
+        g.current.close = price;
+        return;
+      }
+      if (windowStart > g.current.epoch) {
+        const completed = g.current; // window rolled over — previous candle is done, emit once
+        g.subs.forEach(cb => { try { cb(completed); } catch (e) { serverLog('Candle Manager callback error', { err:e.message }); } });
+        g.current = { epoch:windowStart, open:price, high:price, low:price, close:price };
+      }
+      // windowStart < g.current.epoch would mean an out-of-order tick — ignore it
+    });
+  }
+
+  async _backfill(symbol, granularity){
+    const entry = this.symbols.get(symbol);
+    const g = entry && entry.grans.get(granularity);
+    if (!g || g.backfilled) return;
+    g.backfilled = true; // mark up-front so concurrent subscribers don't double-backfill
+    try {
+      const raw = await fetchCandleHistory(symbol, granularity);
+      const candles = raw.map(c => ({ epoch:Number(c.epoch), open:parseFloat(c.open), high:parseFloat(c.high), low:parseFloat(c.low), close:parseFloat(c.close) }));
+      if (!candles.length) return;
+      const last = candles[candles.length - 1];
+      candles.slice(0, -1).forEach(c => g.subs.forEach(cb => { try { cb(c); } catch (e) {} }));
+      // Seed the in-progress candle with the most recent one from history so the very
+      // next live tick continues it correctly instead of starting a fresh, empty window.
+      if (!g.current) g.current = last;
+    } catch (e) {
+      g.backfilled = false; // allow a retry on the next subscribe/reconnect
+      serverLog('Candle Manager backfill failed', { symbol, granularity, err:e.message });
+    }
+  }
+
+  _teardown(symbol){
+    const entry = this.symbols.get(symbol);
+    if (!entry) return;
+    if (entry.ws) closeWs(entry.ws);
+    this.symbols.delete(symbol);
+  }
+}
+
+// One-time historical candle fetch used only for backfill (not for streaming).
+function fetchCandleHistory(symbol, granularity){
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(WS_DEMO);
+    const t = setTimeout(() => { try { ws.close(); } catch {} reject(new Error('Backfill timed out')); }, 10000);
+    ws.on('open', () => ws.send(JSON.stringify({ ticks_history:symbol, adjust_start_time:1, count:50, end:'latest', granularity, style:'candles' })));
+    ws.on('message', raw => {
+      let m; try { m = JSON.parse(raw); } catch { return; }
+      if (m.msg_type === 'candles') {
+        clearTimeout(t); try { ws.close(); } catch {}
+        if (m.error) return reject(new Error(m.error.message));
+        resolve(m.candles || []);
+      }
+    });
+    ws.on('error', e => { clearTimeout(t); reject(e); });
+  });
+}
+
+const candleManager = new CandleManager();
+
+// ─── contract builder ─────────────────────────────────────────────────────────
+const CT_MAP = { CALL:'CALL', PUT:'PUT', RISE:'CALL', FALL:'PUT', HIGHER:'CALL', LOWER:'PUT', ONETOUCH:'ONETOUCH', NOTOUCH:'NOTOUCH', VANILLA_CALL:'VANILLALONGCALL', VANILLA_PUT:'VANILLALONGPUT' };
+const NEEDS_BARRIER = new Set(['HIGHER','LOWER','ONETOUCH','NOTOUCH','VANILLA_CALL','VANILLA_PUT']);
+function buildParams(symbol, type, barrier, durValue, durUnit, stake){
+  const ct = CT_MAP[type] || type;
+  const p = { amount:Number(stake), basis:'stake', contract_type:ct, currency:'USD', duration:Number(durValue), duration_unit:durUnit, symbol };
+  if (NEEDS_BARRIER.has(type) && barrier != null && String(barrier).trim() !== '') p.barrier = String(barrier).trim();
+  return p;
+}
+
+// ─── Demo Mode — simulated trades on live price data ─────────────────────────
+// When a slot's cfg.demo_mode is on, no real order is ever sent to Deriv. Instead
+// this watches live ticks (via the same shared Candle Manager connection used for
+// candles — no extra subscription) starting from the moment the trade would have
+// opened, tracks whether/when the barrier is touched or where price lands at
+// expiry, and settles exactly like the real contract type would. A real payout
+// quote is pulled from Deriv's proposal endpoint (pricing only, never executes a
+// trade) so the simulated win amount reflects real market odds, not a guess.
+function resolveBarrier(entrySpot, barrierStr){
+  if (barrierStr == null) return null;
+  const s = String(barrierStr).trim();
+  if (s === '') return null;
+  if (s[0] === '+' || s[0] === '-') return parseFloat((entrySpot + parseFloat(s)).toFixed(5));
+  return parseFloat(s);
+}
+
+async function estimatePayout(params){
+  try {
+    const r = await acct.send({
+      proposal:1, amount:params.amount, basis:params.basis, contract_type:params.contract_type,
+      currency:params.currency, duration:params.duration, duration_unit:params.duration_unit,
+      symbol:params.symbol, ...(params.barrier != null ? { barrier:params.barrier } : {}),
+    });
+    if (r.error) throw new Error(r.error.message);
+    const payout = parseFloat(r.proposal?.payout);
+    if (!isNaN(payout) && payout > 0) return payout;
+    throw new Error('No payout in proposal response');
+  } catch (e) {
+    serverLog('Demo mode: live payout quote failed, using estimate', { err:e.message });
+    return parseFloat((params.amount * 1.85).toFixed(2)); // rough touch-contract fallback (~85% return)
+  }
+}
+
+function simulateContract(slot, params){
+  return new Promise((resolve) => {
+    const type = params.contract_type;
+    const isTouch       = type === 'ONETOUCH' || type === 'NOTOUCH';
+    const isDirectional = type === 'CALL' || type === 'PUT';
+    const isVanilla      = type === 'VANILLALONGCALL' || type === 'VANILLALONGPUT';
+
+    let entrySpot = null, maxSpot = null, minSpot = null, ticksSeen = 0, barrierAbs = null, expireAt = null, done = false;
+    let unsub = () => {};
+
+    const finish = async (won, exitSpot) => {
+      if (done) return; done = true;
+      clearTimeout(safetyTimer);
+      unsub();
+      let profit;
+      if (won) {
+        const manualWin = parseFloat(slot.cfg.demo_win_amount);
+        if (!isNaN(manualWin) && manualWin > 0) {
+          profit = parseFloat(manualWin.toFixed(2)); // manual override — no live quote needed
+        } else {
+          const payout = await estimatePayout(params);
+          profit = parseFloat((payout - params.amount).toFixed(2));
+        }
+      } else {
+        profit = -params.amount; // loss always costs the full stake
+      }
+      resolve({ profit, _entrySpot:entrySpot, exit_spot:exitSpot, _barrier:barrierAbs, _maxSpot:maxSpot, _minSpot:minSpot });
+    };
+
+    // Hard safety cap so a simulated trade can never hang forever if ticks stop arriving
+    const safetyTimer = setTimeout(() => finish(false, null), 6 * 60 * 1000);
+
+    unsub = candleManager.subscribeTicks(params.symbol, tick => {
+      const price = tick.quote;
+      if (entrySpot === null) {
+        entrySpot = price; maxSpot = price; minSpot = price;
+        barrierAbs = resolveBarrier(entrySpot, params.barrier);
+        if (params.duration_unit === 's') expireAt = Date.now() + params.duration * 1000;
+        if (params.duration_unit === 'm') expireAt = Date.now() + params.duration * 60000;
+        return; // first tick only establishes entry, matching how a real contract starts at the next quote
+      }
+      ticksSeen++;
+      if (price > maxSpot) maxSpot = price;
+      if (price < minSpot) minSpot = price;
+
+      if (isTouch && barrierAbs != null) {
+        const touched = barrierAbs >= entrySpot ? price >= barrierAbs : price <= barrierAbs;
+        if (touched) { finish(type === 'ONETOUCH', price); return; }
+      }
+
+      const expired = params.duration_unit === 't' ? ticksSeen >= params.duration : Date.now() >= expireAt;
+      if (!expired) return;
+
+      if (isTouch) { finish(type === 'NOTOUCH', price); return; } // expired without ever touching
+      if (isDirectional) { finish(type === 'CALL' ? price > entrySpot : price < entrySpot, price); return; }
+      if (isVanilla) { finish(type === 'VANILLALONGCALL' ? price > barrierAbs : price < barrierAbs, price); return; }
+      finish(false, price); // unrecognized type — settle as a loss rather than hang
+    });
+  });
+}
+
+// ─── trade execution ──────────────────────────────────────────────────────────
+async function runContract(slot, params, label, opts = {}){
+  if (!acct.ready) throw new Error('Account not connected');
+  const demo = !!slot.cfg.demo_mode;
+  const tag = demo ? '[DEMO] ' : '';
+  slot.emit(`${tag}Opening ${label} | ${params.contract_type}${params.barrier ? ' @'+params.barrier : ''} | ${params.duration}${params.duration_unit} | $${params.amount}`);
+  let cid, settled;
+  if (demo) {
+    cid = `demo-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    settled = await simulateContract(slot, params);
+  } else {
+    const res = await acct.buy(params);
+    if (res.error) throw new Error(res.error.message);
+    cid = res.buy.contract_id;
+    settled = await acct.watchContract(cid);
+  }
+  const profit = parseFloat(settled.profit || 0);
+  const won = profit > 0;
+  slot.stats.trades++;
+  slot.stats[won ? 'wins' : 'losses']++;
+  slot.stats.profit  = parseFloat((slot.stats.profit + profit).toFixed(2));
+  slot.sessionProfit = parseFloat((slot.sessionProfit + profit).toFixed(2));
+  slot.emit(`${tag}${won ? '✓ WIN' : '✗ LOSS'} ${label} $${Math.abs(profit).toFixed(2)} | session: ${slot.sessionProfit >= 0 ? '+' : ''}$${slot.sessionProfit}`, won ? 'win' : 'loss');
+  const rec = {
+    time:new Date().toISOString(), contract_id:cid, symbol:params.symbol, type:params.contract_type,
+    barrier:params.barrier ?? null, stake:params.amount, profit, won, role:opts.role || 'primary', simulated:demo,
+    entrySpot:num(settled._entrySpot), exitSpot:num(settled.exit_spot ?? settled.sell_spot),
+    barrierAbs:num(settled._barrier), maxSpot:num(settled._maxSpot), minSpot:num(settled._minSpot),
+  };
+  slot.history.unshift(rec);
+  if (slot.history.length > 200) slot.history.pop();
+  slot.pushState();
+  push({ type:'trade', slotId:slot.id, data:rec });
+  persistSoon();
+  return rec;
+}
+
+// ─── TP / SL ─────────────────────────────────────────────────────────────────
+function checkTPSL(slot){
+  const { take_profit, stop_loss } = slot.cfg;
+  const p = slot.sessionProfit;
+  if (take_profit > 0 && p >= take_profit)            { slot.emit(`🎯 Take profit $${take_profit} reached — stopping`, 'win');  stopSlot(slot); return true; }
+  if (stop_loss   > 0 && p <= -Math.abs(stop_loss))   { slot.emit(`🛑 Stop loss $${stop_loss} reached — stopping`, 'loss');     stopSlot(slot); return true; }
+  return false;
+}
+
+// ─── filters ─────────────────────────────────────────────────────────────────
+function passMomentum(slot){
+  const { cfg, buf } = slot;
+  const n = Math.min(cfg.momentum_candles, buf.length);
+  if (n < 2) return true;
+  if (cfg.observe_mode === 'ticks') {
+    const r = buf.slice(-n).map(Number);
+    const up = r.every((p,i)=>i===0||p>=r[i-1]), dn = r.every((p,i)=>i===0||p<=r[i-1]);
+    if (!up && !dn) { slot.emit('Momentum: mixed direction — skip','err'); return false; }
+    if (slot.zoneHigh && slot.zoneLow) {
+      const pos = (r[r.length-1] - slot.zoneLow) / ((slot.zoneHigh - slot.zoneLow) || 1);
+      if (pos > 0.35 && pos < 0.65) { slot.emit('Momentum: price dead-center — skip','err'); return false; }
+    }
+  } else {
+    const r = buf.slice(-n);
+    const bull = r.every(c=>parseFloat(c.close)>=parseFloat(c.open)), bear = r.every(c=>parseFloat(c.close)<=parseFloat(c.open));
+    if (!bull && !bear) { slot.emit('Momentum: mixed candles — skip','err'); return false; }
+    if (cfg.momentum_body_mult > 0 && buf.length >= 3) {
+      const slice = buf.slice(-10), avgBody = slice.reduce((s,c)=>s+Math.abs(parseFloat(c.close)-parseFloat(c.open)),0)/slice.length;
+      const last = r[r.length-1], body = Math.abs(parseFloat(last.close)-parseFloat(last.open));
+      if (body < avgBody * cfg.momentum_body_mult) { slot.emit('Momentum: breakout candle too weak — skip','err'); return false; }
+    }
+  }
+  return true;
+}
+
+function passTrend(slot){
+  const { cfg, trendBuf } = slot;
+  const n = Math.min(cfg.trend_candles, trendBuf.length);
+  if (n < 3) return true;
+  const candles = trendBuf.slice(-n);
+  const avgBody = candles.reduce((s,c)=>s+Math.abs(parseFloat(c.close)-parseFloat(c.open)),0)/n;
+  if (avgBody < cfg.min_body_size) { slot.emit('Trend: body too small — choppy — skip','err'); return false; }
+  let ov = 0;
+  for (let i=1;i<candles.length;i++) {
+    const a=candles[i-1], b=candles[i];
+    const oH=Math.min(parseFloat(a.high),parseFloat(b.high)), oL=Math.max(parseFloat(a.low),parseFloat(b.low));
+    const overlap=Math.max(0,oH-oL), range=Math.max(parseFloat(a.high)-parseFloat(a.low),parseFloat(b.high)-parseFloat(b.low))||1;
+    ov += overlap/range;
+  }
+  if (ov/(candles.length-1) > cfg.max_overlap) { slot.emit('Trend: overlap too high — ranging — skip','err'); return false; }
+  let maxRun=1, run=1;
+  for (let i=1;i<candles.length;i++) {
+    const pb=parseFloat(candles[i-1].close)>=parseFloat(candles[i-1].open), cb=parseFloat(candles[i].close)>=parseFloat(candles[i].open);
+    if (pb===cb){run++;maxRun=Math.max(maxRun,run);} else run=1;
+  }
+  if (maxRun < cfg.min_dir_candles) { slot.emit('Trend: no trend — skip','err'); return false; }
+  return true;
+}
+
+function passFilter(slot){
+  if (slot.cfg.filter === 'momentum') return passMomentum(slot);
+  if (slot.cfg.filter === 'trend')    return passTrend(slot);
+  return true;
+}
+
+// ─── slot defaults ────────────────────────────────────────────────────────────
+function defaultCfg(){
+  return {
+    symbol:'1HZ100V', logic:'golden', observe_mode:'ticks', observe_count:5, reaction_range:0.3,
+    confirm_count:1, stake:1, duration_value:5, duration_unit:'t',
+    barrier1:'+0.25', barrier2:'-0.25', contract_type:'ONETOUCH',
+    rest_seconds:30, skip_rest_on_win:false, take_profit:0, stop_loss:0,
+    // Demo Mode — when true, trades are simulated against live prices, no real
+    // orders are ever sent. Defaults to on so a slot never risks real money
+    // until this is explicitly switched off.
+    demo_mode:true,
+    // Manual override for Demo Mode's simulated win profit ($). When > 0, every
+    // simulated win uses this exact dollar amount instead of a live Deriv quote.
+    // 0/empty falls back to the live proposal-based estimate. Losses always cost
+    // the full stake either way. Has zero effect on Real Mode — that path never
+    // reads this field.
+    demo_win_amount:0,
+    // Golden Logic — one attached contract per reversal side (independent params)
+    combo_high_on:false, combo_high_type:'FALL', combo_high_barrier:'+2', combo_high_dv:5, combo_high_du:'t', combo_high_stake:1,
+    combo_low_on:false,  combo_low_type:'RISE', combo_low_barrier:'-2', combo_low_dv:5, combo_low_du:'t', combo_low_stake:1,
+    filter:'none', momentum_candles:3, momentum_body_mult:1.0,
+    trend_candles:5, min_body_size:0.05, max_overlap:0.5, min_dir_candles:3,
+    // Super Logic settings — all configurable, nothing hardcoded
+    super_same_color_count:3, super_opposite_count:2,
+    super_trend_enabled:true, super_trend_mode:'m1_5_15', super_trend_min_match:2,
+    // How many recent candles each timeframe's trend detector looks at. Lower = more
+    // reactive to recent moves, higher = smoother but slower to recognize a new trend.
+    super_trend_lookback_m1:10, super_trend_lookback_m5:8, super_trend_lookback_m15:6,
+    // Consolidation filter — blocks trading in tight/choppy ranges. Off by default.
+    super_consolidation_filter_enabled:false, super_consolidation_lookback:10, super_consolidation_min_range:2.5,
+    super_cooldown_seconds:30,
+  };
+}
+
+// ─── slot ─────────────────────────────────────────────────────────────────────
+class Slot {
+  constructor(idx){
+    this.idx=idx; this.id=`slot${idx}`; this.cfg=defaultCfg();
+    this.running=false; this.busy=false;
+    this.logs=[]; this.stats={trades:0,wins:0,losses:0,profit:0}; this.history=[];
+    this.sessionProfit=0; this.liveCount=0;
+    this.buf=[]; this.trendBuf=[]; this.dataWs=null;
+    // Unsubscribe functions returned by candleManager.subscribe() — replaces the old
+    // per-slot raw candle/trend WebSockets, since candles now come from the shared
+    // Candle Manager instead of being opened directly by each slot.
+    this.candleSubs=[];
+    this.phase='warmup'; this.zoneHigh=null; this.zoneLow=null;
+    this.confSide=null; this.confBuf=[];
+    // Super Logic state
+    this.superM5Buf=[]; this.superM15Buf=[];
+    this.superState='scanning';
+    this.superRun=[];
+    this.superRunColor=null;
+    this.superTriggerBuf=[];
+  }
+  emit(msg, level='info'){
+    const e={ time:new Date().toISOString(), msg, level };
+    this.logs.push(e); if (this.logs.length>400) this.logs.shift();
+    push({ type:'log', slotId:this.id, entry:e });
+  }
+  pushState(){
+    push({ type:'state', slotId:this.id, data:{ running:this.running, busy:this.busy, stats:this.stats, phase:this.phase, liveCount:this.liveCount, sessionProfit:this.sessionProfit, superState:this.superState, superTriggerCount:this.superTriggerBuf.length, superOppositeCount:this.cfg.super_opposite_count } });
+  }
+  clearLog(){ this.logs=[]; push({ type:'log_cleared', slotId:this.id }); }
+  clearStats(){ this.stats={trades:0,wins:0,losses:0,profit:0}; this.sessionProfit=0; this.history=[]; push({ type:'stats_cleared', slotId:this.id }); persistSoon(); }
+  softReset(){
+    this.phase='warmup'; this.zoneHigh=null; this.zoneLow=null; this.confSide=null; this.confBuf=[]; this.buf=[]; this.liveCount=0;
+    this.superState='scanning'; this.superRun=[]; this.superRunColor=null; this.superTriggerBuf=[];
+  }
+  snap(){ return { id:this.id, idx:this.idx, running:this.running, busy:this.busy, stats:this.stats, cfg:this.cfg, phase:this.phase, liveCount:this.liveCount, sessionProfit:this.sessionProfit, superState:this.superState, superTriggerCount:this.superTriggerBuf.length, superOppositeCount:this.cfg.super_opposite_count }; }
+}
+
+const slots  = Array.from({length:10},(_,i)=>new Slot(i));
+const slotOf = new Map(slots.map(s=>[s.id,s]));
+
+function bufPrices(buf,mode){ return mode==='candles' ? buf.flatMap(c=>[parseFloat(c.high),parseFloat(c.low)]) : buf.map(Number); }
+function bufSpread(buf,mode){ const ps=bufPrices(buf,mode); return parseFloat((Math.max(...ps)-Math.min(...ps)).toFixed(5)); }
+
+// ─── Golden Logic — reversal touch (was Logic 3) ───────────────────────────────
+function evalGolden_watch(slot){
+  if (slot.busy || slot.buf.length < slot.cfg.observe_count) return;
+  if (!passFilter(slot)) return;
+  const sp = bufSpread(slot.buf, slot.cfg.observe_mode);
+  if (sp > slot.cfg.reaction_range) return;
+  const ps = bufPrices(slot.buf, slot.cfg.observe_mode);
+  slot.zoneHigh = Math.max(...ps); slot.zoneLow = Math.min(...ps);
+  slot.phase='confirming'; slot.confSide=null; slot.confBuf=[];
+  slot.emit(`Zone locked — HIGH:${slot.zoneHigh} | LOW:${slot.zoneLow} | spread:${sp}`);
+  slot.emit('Waiting for price to reach HIGH or LOW…');
+  slot.pushState();
+}
+
+function onConfirmTick(slot, price){
+  if (!slot.running || slot.busy || slot.phase !== 'confirming') return;
+  if (!slot.confSide) {
+    if (price >= slot.zoneHigh) { slot.confSide='high'; slot.confBuf=[price]; slot.emit(`HIGH touched (${slot.zoneHigh}) — waiting ${slot.cfg.confirm_count} back`); }
+    else if (price <= slot.zoneLow) { slot.confSide='low'; slot.confBuf=[price]; slot.emit(`LOW touched (${slot.zoneLow}) — waiting ${slot.cfg.confirm_count} back`); }
+    return;
+  }
+  slot.confBuf.push(price);
+  if (slot.confSide==='high' && (slot.confBuf.filter(p=>p<slot.zoneHigh).length>=slot.cfg.confirm_count || slot.cfg.confirm_count===0)) fireReversal(slot,'high');
+  if (slot.confSide==='low'  && (slot.confBuf.filter(p=>p>slot.zoneLow ).length>=slot.cfg.confirm_count || slot.cfg.confirm_count===0)) fireReversal(slot,'low');
+}
+
+function fireReversal(slot, side){
+  slot.phase='trading'; slot.busy=true; slot.pushState();
+  const c = slot.cfg;
+  const barrier = side==='high' ? c.barrier1 : c.barrier2;
+
+  // ── Golden Logic: PRIMARY one touch + ONE optional attached contract, fired together ──
+  const on      = side==='high' ? c.combo_high_on      : c.combo_low_on;
+  const aType   = side==='high' ? c.combo_high_type    : c.combo_low_type;
+  const aBar    = side==='high' ? c.combo_high_barrier : c.combo_low_barrier;
+  const aDV     = side==='high' ? c.combo_high_dv      : c.combo_low_dv;
+  const aDU     = side==='high' ? c.combo_high_du      : c.combo_low_du;
+  const aStake  = side==='high' ? c.combo_high_stake   : c.combo_low_stake;
+
+  const primaryParams = buildParams(c.symbol,'ONETOUCH',barrier,c.duration_value,c.duration_unit,c.stake);
+  slot.emit(`Confirmed ${side.toUpperCase()} reversal — PRIMARY ONETOUCH @${barrier}`);
+  const primaryP = runContract(slot, primaryParams, `PRIMARY ONETOUCH ${side.toUpperCase()}`, { role:'primary' })
+    .catch(e => { slot.emit('Primary error: '+e.message,'err'); return null; });
+
+  let comboP = Promise.resolve(null);
+  if (on && aType && aType !== 'none') {
+    const ap = buildParams(c.symbol, aType, aBar, aDV, aDU, aStake);
+    slot.emit(`Combo attach — ${aType}${ap.barrier ? ' @'+ap.barrier : ''} | ${ap.duration}${ap.duration_unit} | $${ap.amount}`);
+    comboP = runContract(slot, ap, `COMBO ${aType}`, { role:'combo' })
+      .catch(e => { slot.emit('Combo error: '+e.message,'err'); return null; });
+  }
+  // rest / momentum decision is based on the PRIMARY one touch ONLY
+  Promise.all([primaryP, comboP]).then(([primaryRec]) => afterTrade(slot, primaryRec ? primaryRec.won : false));
+}
+
+function afterTrade(slot, won){
+  if (!slot.running) return;
+  if (checkTPSL(slot)) return;
+  if (won && slot.cfg.skip_rest_on_win) {
+    slot.busy=false; slot.phase='watching'; slot.zoneHigh=null; slot.zoneLow=null; slot.confSide=null; slot.confBuf=[];
+    slot.pushState(); slot.emit('WIN — no rest, riding momentum with current data','win'); return;
+  }
+  const rest = Math.max(0, Number(slot.cfg.rest_seconds)) * 1000;
+  if (rest > 0) slot.emit(`Resting ${slot.cfg.rest_seconds}s…`);
+  setTimeout(() => {
+    if (!slot.running) return;
+    slot.busy=false; slot.softReset(); slot.pushState();
+    slot.emit(`Collecting fresh data 0/${slot.cfg.observe_count}…`);
+  }, rest);
+}
+
+// ─── Super Logic engine ────────────────────────────────────────────────────────
+
+// Candle color: green = close > open, red = close < open (doji treated as same-color reset)
+function candleColor(c){
+  const cl = parseFloat(c.close), op = parseFloat(c.open);
+  if (cl > op) return 'green';
+  if (cl < op) return 'red';
+  return 'doji';
+}
+
+// Trend detection on a candle buffer: majority candle color over the lookback
+// window. Needs >=60% green to call uptrend, >=60% red to call downtrend —
+// otherwise neutral. Pure color count, not high/low structure.
+function detectTrend(buf, lookback){
+  const win = lookback ? buf.slice(-lookback) : buf;
+  if (win.length < 3) return 'neutral';
+  let green = 0, red = 0;
+  win.forEach(c => {
+    const o = parseFloat(c.open), cl = parseFloat(c.close);
+    if (cl > o) green++; else if (cl < o) red++;
+  });
+  const total = win.length;
+  if (green / total >= 0.6) return 'uptrend';
+  if (red   / total >= 0.6) return 'downtrend';
+  return 'neutral';
+}
+
+// Trend confirmation gate — returns true if the trade direction is confirmed
+function superTrendConfirmed(slot, direction){
+  const cfg = slot.cfg;
+  if (!cfg.super_trend_enabled) return true;
+
+  const m1Trend  = detectTrend(slot.trendBuf,    Number(cfg.super_trend_lookback_m1)  || 10);
+  const m5Trend  = detectTrend(slot.superM5Buf,  Number(cfg.super_trend_lookback_m5)  || 8);
+  const m15Trend = detectTrend(slot.superM15Buf, Number(cfg.super_trend_lookback_m15) || 6);
+
+  const required = direction === 'buy' ? 'uptrend' : 'downtrend';
+
+  if (cfg.super_trend_mode === 'm1_5') {
+    // Mode: M1 or M5 must match — M15 ignored
+    const match = (m1Trend === required) || (m5Trend === required);
+    slot.emit(`Super trend (M1-5 mode): M1=${m1Trend} M5=${m5Trend} | need=${required} | ${match ? 'PASS' : 'FAIL'}`);
+    return match;
+  } else if (cfg.super_trend_mode === 'm1_and_5') {
+    // Mode: M1 AND M5 must both match — stricter than M1-5, M15 ignored
+    const match = (m1Trend === required) && (m5Trend === required);
+    slot.emit(`Super trend (M1+M5 mode): M1=${m1Trend} M5=${m5Trend} | need=${required} on BOTH | ${match ? 'PASS' : 'FAIL'}`);
+    return match;
+  } else {
+    // Mode 1: M1-5-15, require minimum matching count
+    const minMatch = Number(cfg.super_trend_min_match) || 2;
+    const matches  = [m1Trend, m5Trend, m15Trend].filter(t => t === required).length;
+    const pass     = matches >= minMatch;
+    slot.emit(`Super trend (M1-5-15 mode): M1=${m1Trend} M5=${m5Trend} M15=${m15Trend} | need ${minMatch} x ${required} | got ${matches} | ${pass ? 'PASS' : 'FAIL'}`);
+    return pass;
+  }
+}
+
+// Push live trend to client
+function superPushTrend(slot){
+  if (!slot.running || slot.cfg.logic !== 'super') return;
+  const cfg = slot.cfg;
+  const m1  = detectTrend(slot.trendBuf,    Number(cfg.super_trend_lookback_m1)  || 10);
+  const m5  = detectTrend(slot.superM5Buf,  Number(cfg.super_trend_lookback_m5)  || 8);
+  const m15 = detectTrend(slot.superM15Buf, Number(cfg.super_trend_lookback_m15) || 6);
+  push({ type:'trend', slotId:slot.id, data:{ m1, m5, m15 } });
+}
+
+// Full Super Logic reset — discard setup, start fresh
+function superReset(slot){
+  slot.superState     = 'scanning';
+  slot.superRun       = [];
+  slot.superRunColor  = null;
+  slot.superTriggerBuf = [];
+}
+
+// Fire a Super Logic trade (primary ONETOUCH only, no combo)
+function superFireTrade(slot, direction){
+  if (slot.busy) return;
+  slot.busy = true; slot.phase = 'trading'; slot.pushState();
+  const c       = slot.cfg;
+  const barrier = direction === 'buy' ? c.barrier1 : c.barrier2;
+  const label   = direction === 'buy' ? 'BUY +Barrier' : 'SELL -Barrier';
+  slot.emit(`Super Logic signal: ${label} ONETOUCH @${barrier}`);
+  const params  = buildParams(c.symbol, 'ONETOUCH', barrier, c.duration_value, c.duration_unit, c.stake);
+  runContract(slot, params, `SUPER ${label}`, { role:'primary' })
+    .then(rec  => superAfterTrade(slot, rec.won))
+    .catch(e   => { slot.emit('Super trade error: '+e.message,'err'); superAfterTrade(slot, false); });
+}
+
+// Post-trade cooldown then clean restart
+function superAfterTrade(slot, won){
+  if (!slot.running) return;
+  if (checkTPSL(slot)) return;
+  superReset(slot);
+  const cooldown = Math.max(0, Number(slot.cfg.super_cooldown_seconds)) * 1000;
+  slot.emit(`Super cooldown ${slot.cfg.super_cooldown_seconds}s — pausing all analysis…`);
+  setTimeout(() => {
+    if (!slot.running) return;
+    slot.busy  = false;
+    slot.phase = 'watching';
+    superReset(slot);
+    slot.pushState();
+    slot.emit('Super cooldown done — scanning for fresh candle sequence…');
+  }, cooldown);
+}
+
+
+
+
+// Called on every newly closed M1 candle for Super Logic
+function superOnCandle(slot, candle){
+  if (!slot.running || slot.busy) return;
+
+  const n    = Number(slot.cfg.super_same_color_count) || 3;
+  const m    = Number(slot.cfg.super_opposite_count)   || 1;
+  const size = n + m;
+
+  // Rolling buffer — keep last (size) candles
+  slot.superRun.push(candle);
+  if (slot.superRun.length > size) slot.superRun = slot.superRun.slice(-size);
+
+  // Not enough candles yet
+  if (slot.superRun.length < size){
+    slot.emit(`Super: collecting ${slot.superRun.length}/${size} candles…`);
+    return;
+  }
+
+  // Evaluate the window: first N = same-color, last M = opposite
+  const win      = slot.superRun.slice(-size);
+  const samePart = win.slice(0, n);
+  const oppPart  = win.slice(n);
+
+  const sameColor = candleColor(samePart[0]);
+  const oppColor  = sameColor === 'green' ? 'red' : 'green';
+
+  // All N candles must be the same color (no doji)
+  if (sameColor === 'doji' || !samePart.every(c => candleColor(c) === sameColor)) return;
+
+  // All M opposite candles must be the opposite color (no doji, no same color)
+  if (!oppPart.every(c => candleColor(c) === oppColor)) return;
+
+  // Direction check on same-color candles only
+  // Green: each close must be strictly higher than previous
+  // Red:   each close must be strictly lower than previous
+  let dirValid = true;
+  for (let i = 1; i < samePart.length; i++){
+    const prev = parseFloat(samePart[i-1].close);
+    const curr = parseFloat(samePart[i].close);
+    if (sameColor === 'green' ? curr <= prev : curr >= prev){ dirValid = false; break; }
+  }
+
+  if (!dirValid){
+    slot.emit(`Super: ${sameColor.toUpperCase()}x${n} found but direction not progressive — skipping`);
+    return;
+  }
+
+  // Pattern valid — determine trade direction
+  // Green ascending → price was rising → expect reversal → SELL (−barrier)
+  // Red descending  → price was falling → expect reversal → BUY (+barrier)
+  const direction = sameColor === 'green' ? 'sell' : 'buy';
+  slot.emit(`Super: ✓ ${sameColor.toUpperCase()}x${n} + ${oppColor.toUpperCase()}x${m} → ${direction.toUpperCase()} setup — checking trend…`);
+
+  // Trend confirmation
+  if (!superTrendConfirmed(slot, direction)){
+    slot.emit('Super: trend FAILED — discarding setup, scanning fresh','err');
+    slot.superRun = []; // discard all candles from this setup
+    return;
+  }
+
+  // Consolidation filter — reject tight, choppy ranges even if pattern+trend passed
+  if (!superConsolidationOk(slot)){
+    slot.superRun = []; // discard all candles from this setup
+    return;
+  }
+
+  // All conditions met — fire
+  slot.emit(`Super: trend confirmed → firing ${direction.toUpperCase()}!`,'ok');
+  slot.superRun = [];
+  slot.superState = 'scanning';
+  superFireTrade(slot, direction);
+}
+
+// Blocks trading when recent price action is too tight/choppy to trust a reversal
+// signal. Measures (highest high − lowest low) over the last N M1 candles; if that
+// range is smaller than the configured minimum, it's consolidation — skip the trade.
+function superConsolidationOk(slot){
+  const cfg = slot.cfg;
+  if (!cfg.super_consolidation_filter_enabled) return true;
+  const lookback = Number(cfg.super_consolidation_lookback) || 10;
+  const minRange = Number(cfg.super_consolidation_min_range) || 0;
+  const win = slot.trendBuf.slice(-lookback);
+  if (win.length < 3) return true; // not enough data yet — don't block on startup
+  const highs = win.map(c => parseFloat(c.high));
+  const lows  = win.map(c => parseFloat(c.low));
+  const range = Math.max(...highs) - Math.min(...lows);
+  if (range < minRange) {
+    slot.emit(`Super: consolidation filter — range ${range.toFixed(2)} < min ${minRange} over last ${win.length} candles — skipping`,'err');
+    return false;
+  }
+  return true;
+}
+
+// ─── data dispatch — guaranteed fresh warm-up before any trade ──────────────────
+function dispatch(slot, val){
+  if (!slot.running) return;
+
+  // ── Super Logic: only uses M1 closed candles ─────────────────────────────
+  if (slot.cfg.logic === 'super'){
+    if (typeof val === 'object' && val.open != null){
+      // val is a candle — only process closed ones (isLive=false from history, or ohlc with epoch matching)
+      // The stream is set up so dispatch is only called with closed candles (isLive flag filtered in startWatcher)
+      superOnCandle(slot, val);
+    }
+    return;
+  }
+
+  // ── Golden Logic ──────────────────────────────────────────────────────────
+  const price = slot.cfg.observe_mode==='candles' ? parseFloat(val.close) : Number(val);
+  if (slot.phase === 'confirming') { onConfirmTick(slot, price); return; }
+  if (slot.phase === 'trading' || slot.busy) return;
+
+  slot.liveCount++;
+  slot.buf.push(val); if (slot.buf.length > slot.cfg.observe_count) slot.buf.shift();
+
+  if (slot.liveCount < slot.cfg.observe_count) {
+    slot.emit(`Collecting fresh ${slot.cfg.observe_mode==='candles'?'candles':'ticks'} ${slot.liveCount}/${slot.cfg.observe_count}…`);
+    slot.pushState(); return;
+  }
+  if (slot.liveCount === slot.cfg.observe_count && slot.phase === 'warmup') {
+    slot.phase = 'watching';
+    slot.emit(`Warm-up complete — ${slot.cfg.observe_count} fresh ${slot.cfg.observe_mode==='candles'?'candles':'ticks'} collected — monitoring`);
+    slot.pushState();
+  }
+  if (slot.phase === 'watching') evalGolden_watch(slot);
+}
+
+// ─── watchers ─────────────────────────────────────────────────────────────────
+function closeWs(ws){ if (ws) try { ws.close(); } catch {} }
+
+function clearCandleSubs(slot){ slot.candleSubs.forEach(unsub => { try { unsub(); } catch {} }); slot.candleSubs = []; }
+
+function startWatcher(slot){
+  closeWs(slot.dataWs); slot.dataWs=null;
+  clearCandleSubs(slot);
+
+  const cfg = slot.cfg;
+
+  if (cfg.logic === 'super'){
+    // All candles now come from the shared Candle Manager — one subscription per
+    // granularity needed. Same-symbol slots share the underlying tick connection.
+    slot.candleSubs.push(candleManager.subscribe(cfg.symbol, 60, candle => {
+      if (!slot.running) return;
+      slot.trendBuf.push(candle); if (slot.trendBuf.length > 100) slot.trendBuf.shift();
+      superPushTrend(slot);
+      dispatch(slot, candle);
+    }));
+    slot.candleSubs.push(candleManager.subscribe(cfg.symbol, 300, candle => {
+      if (!slot.running) return;
+      slot.superM5Buf.push(candle); if (slot.superM5Buf.length > 100) slot.superM5Buf.shift();
+      superPushTrend(slot);
+    }));
+    if (cfg.super_trend_mode !== 'm1_5' && cfg.super_trend_mode !== 'm1_and_5') {
+      slot.candleSubs.push(candleManager.subscribe(cfg.symbol, 900, candle => {
+        if (!slot.running) return;
+        slot.superM15Buf.push(candle); if (slot.superM15Buf.length > 100) slot.superM15Buf.shift();
+        superPushTrend(slot);
+      }));
+    }
+    slot.phase = 'watching'; slot.pushState();
+    slot.emit(`Super Logic started — M1 candles (core) | M5 + M15 (trend) | Symbol: ${cfg.symbol}`);
+    return;
+  }
+
+  // Golden Logic streams
+  if (cfg.filter === 'trend') {
+    slot.candleSubs.push(candleManager.subscribe(cfg.symbol, 60, candle => { if (!slot.running) return; slot.trendBuf.push(candle); if (slot.trendBuf.length>50) slot.trendBuf.shift(); }));
+  }
+  if (cfg.observe_mode === 'candles') {
+    slot.candleSubs.push(candleManager.subscribe(cfg.symbol, 60, candle => dispatch(slot, candle)));
+  } else {
+    const attachClose = ws => {
+      ws.on('error', e => slot.emit('Stream error: '+e.message,'err'));
+      ws.on('close', () => {
+        if (!slot.running) return;
+        slot.emit('Stream dropped — reconnecting in 4s…','err');
+        setTimeout(() => { if (slot.running) { slot.buf=[]; slot.liveCount=0; slot.phase='warmup'; startWatcher(slot); } }, 4000);
+      });
+    };
+    slot.dataWs = acct.openTickStream(cfg.symbol, price => dispatch(slot, price));
+    attachClose(slot.dataWs);
+  }
+  slot.emit(`Stream open — ${cfg.observe_mode==='candles'?'M1 Candles':'Ticks'} | Golden Logic | Filter: ${cfg.filter}`);
+}
+
+async function startSlot(slot){
+  if (slot.running) return { error:'Already running' };
+  if (!acct.ready) { try { await acct.connect(); } catch(e) { return { error:e.message }; } }
+  slot.running=true; slot.busy=false; slot.sessionProfit=0;
+  slot.buf=[]; slot.trendBuf=[]; slot.liveCount=0;
+  slot.phase='warmup'; slot.zoneHigh=null; slot.zoneLow=null; slot.confSide=null; slot.confBuf=[];
+  slot.superM5Buf=[]; slot.superM15Buf=[];
+  superReset(slot);
+  slot.pushState(); startWatcher(slot);
+  if (slot.cfg.logic !== 'super') slot.emit(`Bot started — collecting fresh data 0/${slot.cfg.observe_count} (no trade until warm-up done)…`);
+  return { success:true };
+}
+
+function stopSlot(slot){
+  slot.running=false; slot.busy=false;
+  closeWs(slot.dataWs); slot.dataWs=null;
+  clearCandleSubs(slot);
+  slot.buf=[]; slot.trendBuf=[]; slot.liveCount=0;
+  slot.phase='warmup'; slot.zoneHigh=null; slot.zoneLow=null; slot.confSide=null; slot.confBuf=[];
+  slot.superM5Buf=[]; slot.superM15Buf=[];
+  superReset(slot);
+  slot.emit('Bot stopped'); slot.pushState(); return { success:true };
+}
+
+// ─── health monitor — keep all running bots alive forever ───────────────────────
+setInterval(() => {
+  if (acct.token && !acct.ready && !acct._reconnecting && !acct.isLive) { acct.connect().catch(() => {}); }
+  slots.forEach(slot => {
+    if (!slot.running) return;
+    // Candle-based logic (Golden candle-mode, Super Logic, trend filter) is fed by the
+    // Candle Manager, which owns its own reconnect/backoff — don't duplicate that here,
+    // or it just recreates the same kind of restart-loop bug as the old account socket.
+    if (slot.cfg.logic === 'super' || slot.cfg.observe_mode === 'candles') return;
+    // Golden Logic tick-mode still uses a raw per-slot WebSocket — that one we do watch.
+    const ws = slot.dataWs;
+    if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+      slot.emit('Health check: stream dead — restarting','err');
+      slot.buf=[]; slot.liveCount=0; slot.phase='warmup';
+      startWatcher(slot);
+    }
+  });
+}, 10000);
+
+// ─── symbols ──────────────────────────────────────────────────────────────────
+let symsCache = null;
+function fetchSymbols(){
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(WS_DEMO);
+    const t = setTimeout(() => { try { ws.close(); } catch {} reject(new Error('Timed out')); }, 10000);
+    ws.on('open', () => ws.send(JSON.stringify({ active_symbols:'full', product_type:'basic' })));
+    ws.on('message', raw => { let m; try { m=JSON.parse(raw); } catch { return; } if (m.msg_type==='active_symbols') { clearTimeout(t); try { ws.close(); } catch {} if (m.error) return reject(new Error(m.error.message)); resolve(m.active_symbols); } });
+    ws.on('error', e => { clearTimeout(t); reject(e); });
+  });
+}
+
+// ─── persistence (survives restarts) ─────────────────────────────────────────
+let persistTimer = null;
+function persistSoon(){ if (persistTimer) return; persistTimer = setTimeout(persistNow, 3000); }
+function persistNow(){
+  persistTimer = null;
+  try {
+    const data = slots.map(s => ({ id:s.id, cfg:s.cfg, stats:s.stats, history:s.history, sessionProfit:s.sessionProfit }));
+    fs.writeFile(STATE_FILE, JSON.stringify(data), () => {});
+  } catch {}
+}
+function loadState(){
+  try {
+    if (!fs.existsSync(STATE_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    data.forEach(d => {
+      const s = slotOf.get(d.id); if (!s) return;
+      if (d.cfg)   s.cfg   = { ...s.cfg, ...d.cfg };
+      if (d.stats) s.stats = d.stats;
+      if (d.history) s.history = d.history;
+      if (typeof d.sessionProfit === 'number') s.sessionProfit = d.sessionProfit;
+    });
+    serverLog('State restored from disk');
+  } catch (e) { serverLog('State load failed', { err:e.message }); }
+}
+setInterval(persistNow, 30000);
+
+// ─── OAuth routes ────────────────────────────────────────────────────────────
+app.get('/api/oauth/url', (req, res) => {
+  const verifier = generateCodeVerifier(), challenge = generateCodeChallenge(verifier), state = base64url(crypto.randomBytes(16));
+  oauthPending.set(state, { verifier });
+  setTimeout(() => oauthPending.delete(state), 10*60*1000);
+  const params = new URLSearchParams({ response_type:'code', client_id:APP_ID_LIVE, redirect_uri:REDIRECT_URI, scope:'trade', state, code_challenge:challenge, code_challenge_method:'S256' });
+  res.json({ url:`https://auth.deriv.com/oauth2/auth?${params.toString()}` });
+});
+
+app.get('/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.send(`<script>window.location.href='/';</script><p>Login failed: ${error}</p>`);
+  if (!code || !state) return res.send(`<script>window.location.href='/';</script><p>Missing params</p>`);
+  const pending = oauthPending.get(state);
+  if (!pending) return res.send(`<script>window.location.href='/';</script><p>Session expired — try again</p>`);
+  oauthPending.delete(state);
+
+  res.send(`<!DOCTYPE html><html><head><title>Zone Touch — Connecting</title>
+  <style>body{background:#060910;color:#A78BFA;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;}
+  .spin{width:40px;height:40px;border:3px solid #192030;border-top-color:#A78BFA;border-radius:50%;animation:s .8s linear infinite;}
+  @keyframes s{to{transform:rotate(360deg);}}</style></head>
+  <body><div class="spin"></div><p>Connecting to Deriv live account...</p>
+  <script>setTimeout(()=>window.location.href='/',12000);</script></body></html>`);
+
+  try {
+    push({ type:'live_status', status:'working', msg:'Exchanging auth code…' });
+    const tokenRes = await fetch('https://auth.deriv.com/oauth2/token', {
+      method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+      body:new URLSearchParams({ grant_type:'authorization_code', client_id:APP_ID_LIVE, code, code_verifier:pending.verifier, redirect_uri:REDIRECT_URI }).toString(),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token) throw new Error(tokenData.error_description || tokenData.error || 'Token exchange failed');
+    const accessToken = tokenData.access_token;
+    push({ type:'live_status', status:'working', msg:'Access token obtained — fetching account…' });
+
+    let accountsRes = await fetch('https://api.derivws.com/trading/v1/options/accounts', { headers:{ 'Authorization':`Bearer ${accessToken}`, 'Deriv-App-ID':APP_ID_LIVE } });
+    let accountsData = await accountsRes.json();
+    let accountId = accountsData.data?.[0]?.account_id;
+
+    if (!accountId) {
+      push({ type:'live_status', status:'working', msg:'No account found — creating one…' });
+      const createRes = await fetch('https://api.derivws.com/trading/v1/options/accounts', { method:'POST', headers:{ 'Authorization':`Bearer ${accessToken}`, 'Deriv-App-ID':APP_ID_LIVE, 'Content-Type':'application/json' }, body:JSON.stringify({ currency:'USD', group:'row', account_type:'real' }) });
+      const createData = await createRes.json();
+      accountId = createData.data?.[0]?.account_id;
+      if (!accountId) throw new Error('Could not find or create a live account');
+    }
+    push({ type:'live_status', status:'working', msg:`Account: ${accountId} — getting WebSocket token…` });
+
+    const otpRes = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`, { method:'POST', headers:{ 'Authorization':`Bearer ${accessToken}`, 'Deriv-App-ID':APP_ID_LIVE } });
+    const otpData = await otpRes.json();
+    if (!otpData.data?.url) throw new Error('OTP endpoint did not return a WebSocket URL');
+
+    acct.liveAccessToken = accessToken; acct.liveAccountId = accountId;
+    push({ type:'live_status', status:'working', msg:'Connecting live WebSocket…' });
+    await acct.connectLive(otpData.data.url, accountId);
+    push({ type:'live_status', status:'ready', msg:`✅ Connected — ${accountId}` });
+    push({ type:'account', data:acct.info() });
+  } catch (err) {
+    serverLog('Live login error', { err:err.message });
+    push({ type:'live_status', status:'error', msg:`❌ ${err.message}` });
+  }
+});
+
+// ─── app routes ──────────────────────────────────────────────────────────────
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+app.get('/api/stream', (req, res) => {
+  res.set({ 'Content-Type':'text/event-stream', 'Cache-Control':'no-cache', Connection:'keep-alive' });
+  res.flushHeaders(); clients.push(res);
+  res.write(`data: ${JSON.stringify({ type:'init', account:acct.info(), slots:slots.map(s=>s.snap()), appId:APP_ID_LIVE })}\n\n`);
+  req.on('close', () => { const i = clients.indexOf(res); if (i !== -1) clients.splice(i,1); });
+});
+
+app.get('/api/account', (req, res) => res.json(acct.info()));
+
+app.post('/api/token', async (req, res) => {
+  const { token } = req.body; if (!token) return res.status(400).json({ error:'No token' });
+  acct.setToken(token);
+  try { await acct.connect(); res.json({ success:true, ...acct.info() }); }
+  catch (e) { res.status(500).json({ error:e.message }); }
+});
+
+app.get('/api/symbols', async (req, res) => {
+  try {
+    if (!symsCache) {
+      const raw = await fetchSymbols();
+      symsCache = raw.filter(s => s.market==='synthetic_index' && (/^1HZ/.test(s.symbol) || /\(1s\)/i.test(s.display_name)))
+        .map(s => ({ symbol:s.symbol, display_name:s.display_name }))
+        .sort((a,b) => a.display_name.localeCompare(b.display_name));
+    }
+    res.json(symsCache);
+  } catch (e) { res.status(500).json({ error:e.message }); }
+});
+
+app.get('/api/slots', (req, res) => res.json(slots.map(s=>s.snap())));
+app.get('/api/slot/:id', (req, res) => { const s=slotOf.get(req.params.id); s ? res.json(s.snap()) : res.status(404).json({ error:'Not found' }); });
+app.get('/api/slot/:id/logs', (req, res) => { const s=slotOf.get(req.params.id); s ? res.json(s.logs) : res.status(404).json({ error:'Not found' }); });
+app.get('/api/slot/:id/history', (req, res) => { const s=slotOf.get(req.params.id); s ? res.json(s.history) : res.status(404).json({ error:'Not found' }); });
+
+app.post('/api/slot/:id/start', async (req, res) => { const s=slotOf.get(req.params.id); if (!s) return res.status(404).json({ error:'Not found' }); res.json(await startSlot(s)); });
+app.post('/api/slot/:id/stop', (req, res) => { const s=slotOf.get(req.params.id); if (!s) return res.status(404).json({ error:'Not found' }); res.json(stopSlot(s)); });
+app.post('/api/slot/:id/cfg', (req, res) => { const s=slotOf.get(req.params.id); if (!s) return res.status(404).json({ error:'Not found' }); s.cfg={ ...s.cfg, ...req.body }; persistNow(); res.json(s.cfg); });
+app.post('/api/slot/:id/clearlogs', (req, res) => { const s=slotOf.get(req.params.id); if (!s) return res.status(404).json({ error:'Not found' }); s.clearLog(); res.json({ success:true }); });
+app.post('/api/slot/:id/clearstats', (req, res) => { const s=slotOf.get(req.params.id); if (!s) return res.status(404).json({ error:'Not found' }); s.clearStats(); res.json({ success:true }); });
+app.post('/api/stopall', (req, res) => { slots.forEach(s => { if (s.running) stopSlot(s); }); res.json({ success:true }); });
+
+loadState();
+app.listen(PORT, () => serverLog(`Zone Touch 10-in-1 v6 running on port ${PORT}`));
