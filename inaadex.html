@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zone Touch 10-in-1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:#060910;color:#C8D0DC;font-family:'JetBrains Mono',monospace;font-size:13px;}
+.app{display:flex;height:100vh;overflow:hidden;}
+.sb{width:248px;min-width:248px;background:#07090E;border-right:1px solid #111827;display:flex;flex-direction:column;overflow:hidden;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.logo{padding:14px;border-bottom:1px solid #111827;display:flex;align-items:center;gap:10px;}
+.logo-orb{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#A78BFA,#EC4899);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;box-shadow:0 0 14px rgba(167,139,250,.25);}
+.logo-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#E8EDF3;}
+.logo-tag{margin-left:auto;font-size:10px;background:#111827;color:#3C4A5C;padding:2px 7px;border-radius:5px;font-family:'Space Grotesk',sans-serif;border:1px solid #1A2535;}
+.acct{padding:12px 14px;border-bottom:1px solid #111827;}
+.arow{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.adot{width:8px;height:8px;border-radius:50%;background:#1E2A38;transition:all .3s;}
+.adot.on{background:#22C55E;box-shadow:0 0 7px #22C55E;}
+.albl{font-size:11px;color:#6B7A8D;font-family:'Space Grotesk',sans-serif;font-weight:500;}
+.abal{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#E8EDF3;margin:3px 0 1px 16px;min-height:20px;}
+.aid{font-size:10px;color:#2C3A4A;margin:0 0 8px 16px;min-height:13px;}
+.live-status{font-size:11px;color:#FB923C;margin:0 0 7px 0;min-height:15px;font-family:'Space Grotesk',sans-serif;}
+.btn-oauth{width:100%;background:linear-gradient(135deg,#C8102E,#E63950);color:#fff;border:none;border-radius:7px;padding:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn-oauth:hover{opacity:.88;}
+.div-or{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.div-or::before,.div-or::after{content:'';flex:1;height:1px;background:#192030;}
+.div-or span{font-size:10px;color:#3C4A5C;font-family:'Space Grotesk',sans-serif;}
+.tinp{width:100%;background:#0C1220;border:1px solid #192030;color:#C8D0DC;font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 10px;border-radius:7px;margin-bottom:5px;outline:none;}
+.tinp:focus{border-color:#A78BFA;}
+.btn-demo{width:100%;background:#0C1220;color:#A78BFA;border:1px solid #A78BFA;border-radius:7px;padding:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;cursor:pointer;}
+.btn-demo:disabled{opacity:.4;cursor:not-allowed;}
+.slist{flex:1;overflow-y:auto;padding:6px;}
+.si{display:flex;align-items:center;padding:9px 10px;border-radius:9px;cursor:pointer;margin-bottom:2px;gap:8px;border:1px solid transparent;transition:background .1s,border-color .1s;}
+.si:hover{background:#0C1220;}.si.active{background:#0C1220;border-color:#192030;}
+.sinum{width:22px;height:22px;border-radius:7px;background:#111827;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#4B5A6C;flex-shrink:0;}
+.sinum.on{background:rgba(167,139,250,.15);color:#A78BFA;}
+.simeta{flex:1;min-width:0;}
+.sisym{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;color:#D4DAE4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sisub{font-size:10px;color:#2C3A4A;margin-top:2px;}
+.siright{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.sdot{width:7px;height:7px;border-radius:50%;background:#1E2A38;}
+.sdot.on{background:#22C55E;box-shadow:0 0 5px #22C55E;animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.spl{font-size:10px;font-weight:600;font-family:'Space Grotesk',sans-serif;}
+.cg{color:#22C55E;}.cr{color:#EF4444;}.cm{color:#2C3A4A;}
+.sbfoot{padding:10px 12px;border-top:1px solid #111827;}
+.btn-stopall{width:100%;background:transparent;color:#EF4444;border:1px solid #2A1515;border-radius:7px;padding:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;cursor:pointer;}
+.btn-stopall:hover{background:#150808;}
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.wi{font-size:56px;opacity:.18;}.wt{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;color:#1A2230;}.ws{color:#131C28;font-size:13px;}
+.dash{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.hdr{padding:13px 22px;border-bottom:1px solid #111827;display:flex;align-items:center;gap:12px;flex-shrink:0;background:#07090E;}
+.hdr-num{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;flex-shrink:0;}
+.hdr-info{flex:1;min-width:0;}
+.hdr-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#E8EDF3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-meta{font-size:11px;color:#4B5A6C;margin-top:2px;}
+.badge{font-size:11px;padding:4px 12px;border-radius:20px;font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap;}
+.badge.stp{background:rgba(30,42,56,.4);color:#3C4A5C;border:1px solid #192030;}
+.badge.col{background:rgba(251,146,60,.1);color:#FB923C;border:1px solid rgba(251,146,60,.22);}
+.badge.mon{background:rgba(34,197,94,.1);color:#22C55E;border:1px solid rgba(34,197,94,.22);}
+.badge.con{background:rgba(59,130,246,.1);color:#3B82F6;border:1px solid rgba(59,130,246,.22);}
+.badge.trd{background:rgba(167,139,250,.1);color:#A78BFA;border:1px solid rgba(167,139,250,.22);}
+.hbtns{display:flex;gap:8px;flex-shrink:0;}
+.btn-start{background:#A78BFA;color:#0D0520;border:none;border-radius:8px;padding:9px 20px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-start:disabled{opacity:.4;cursor:not-allowed;}
+.btn-stop{background:transparent;color:#EF4444;border:1px solid #EF4444;border-radius:8px;padding:9px 20px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-stop:disabled{opacity:.4;cursor:not-allowed;}
+.sbar{display:grid;grid-template-columns:repeat(5,1fr);flex-shrink:0;border-bottom:1px solid #111827;}
+.sc{padding:11px 14px;border-right:1px solid #111827;background:#07090E;}.sc:last-child{border-right:none;}
+.sl{font-size:10px;color:#2C3A4A;text-transform:uppercase;letter-spacing:1px;font-family:'Space Grotesk',sans-serif;margin-bottom:4px;}
+.sv{font-size:20px;font-weight:700;color:#E8EDF3;font-family:'Space Grotesk',sans-serif;letter-spacing:-.5px;}
+.sv.g{color:#22C55E;}.sv.r{color:#EF4444;}
+.cgrid{flex:1;overflow:hidden;display:grid;grid-template-columns:316px 1fr;grid-template-rows:1fr 185px;}
+.setp{grid-column:1;grid-row:1;border-right:1px solid #111827;overflow-y:auto;padding:13px 15px;background:#07090E;}
+.ph{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:#2C3A4A;margin-bottom:10px;}
+.f{margin-bottom:9px;}
+.f label{display:block;font-size:11px;color:#4B5A6C;margin-bottom:4px;font-family:'Space Grotesk',sans-serif;}
+.f input,.f select{width:100%;background:#0C1220;border:1px solid #192030;color:#C8D0DC;font-family:'JetBrains Mono',monospace;font-size:13px;padding:7px 10px;border-radius:7px;outline:none;transition:border-color .15s;}
+.f input:focus,.f select:focus{border-color:#A78BFA;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.row3{display:grid;grid-template-columns:1fr 80px;gap:6px;}
+.hr{height:1px;background:#111827;margin:11px 0;}
+.pills{display:flex;gap:4px;}
+.pill{flex:1;padding:7px 4px;background:#0C1220;border:1px solid #192030;color:#4B5A6C;border-radius:7px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:11px;text-align:center;line-height:1.4;transition:all .12s;}
+.pill.on{background:rgba(167,139,250,.1);color:#A78BFA;border-color:#A78BFA;}
+.pill-sub{font-size:9px;font-weight:400;color:#2C3A4A;margin-top:2px;}
+.fpill{flex:1;padding:8px 4px;background:#0C1220;border:1px solid #192030;color:#4B5A6C;border-radius:7px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:11px;text-align:center;line-height:1.4;transition:all .12s;}
+.fpill.fn{background:rgba(75,90,108,.12);color:#8897A8;border-color:#4B5A6C;}
+.fpill.fm{background:rgba(251,146,60,.1);color:#FB923C;border-color:#FB923C;}
+.fpill.ft{background:rgba(34,197,94,.1);color:#22C55E;border-color:#22C55E;}
+.fbox{background:#0A1018;border:1px solid #192030;border-radius:8px;padding:11px;margin-top:9px;}
+.fbox-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;}
+.fbox-title.m{color:#FB923C;}.fbox-title.t{color:#22C55E;}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:#0A1018;border:1px solid #192030;border-radius:7px;margin-bottom:9px;cursor:pointer;gap:10px;}
+.tog-lbl{font-size:11px;color:#C8D0DC;font-family:'Space Grotesk',sans-serif;font-weight:500;flex:1;}
+.tog-lbl span{display:block;font-size:10px;color:#4B5A6C;font-weight:400;margin-top:2px;}
+.tog{width:38px;height:21px;border-radius:11px;background:#1E2A38;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;outline:none;}
+.tog.on{background:#A78BFA;}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:left .2s;}
+.tog.on::after{left:20px;}
+.btn-save{width:100%;background:#A78BFA;color:#0D0520;border:none;border-radius:8px;padding:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px;}
+.smsg{text-align:center;font-size:11px;color:#A78BFA;margin-top:6px;height:15px;transition:opacity .3s;}
+.logp{grid-column:2;grid-row:1;overflow:hidden;display:flex;flex-direction:column;padding:13px 15px;}
+.log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.logbox{flex:1;overflow-y:auto;font-size:12px;line-height:1.7;}
+.le{color:#2C3A4A;white-space:pre-wrap;word-break:break-word;}
+.le .ts{color:#1A2535;margin-right:6px;}
+.le.ok{color:#C8D0DC;}.le.win{color:#22C55E;}.le.loss{color:#EF4444;}.le.err{color:#FB923C;}
+.btn-clr{font-size:10px;color:#3C4A5C;border:1px solid #192030;background:transparent;border-radius:5px;padding:3px 9px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;margin-left:6px;}
+.btn-clr:hover{color:#EF4444;border-color:#EF4444;}
+.histp{grid-column:1/-1;grid-row:2;border-top:1px solid #111827;overflow-y:auto;background:#07090E;}
+.histhdr{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:#2C3A4A;padding:9px 16px 7px;position:sticky;top:0;background:#07090E;border-bottom:1px solid #0E1520;z-index:1;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:10px;color:#2C3A4A;font-weight:500;text-align:left;padding:6px 14px;text-transform:uppercase;letter-spacing:.8px;}
+td{padding:6px 14px;border-top:1px solid #0C1220;font-size:12px;color:#6B7A8D;}
+.tw{color:#22C55E;font-weight:600;}.tl{color:#EF4444;font-weight:600;}
+.emp{padding:18px 16px;color:#1A2535;font-size:12px;}
+.combo-side{background:#0A1018;border:1px solid #192030;border-radius:8px;padding:11px;margin-top:9px;}
+.combo-side.high{border-color:rgba(34,197,94,.28);}
+.combo-side.low{border-color:rgba(239,68,68,.28);}
+.combo-note{font-size:10px;color:#4B5A6C;line-height:1.5;margin-bottom:9px;}
+::-webkit-scrollbar{width:3px;height:3px;}
+.trend-bar{display:flex;gap:8px;padding:10px 14px;background:#070C14;border-bottom:1px solid #111827;}
+.trend-item{display:flex;align-items:center;gap:6px;flex:1;justify-content:center;}
+.trend-tf{font-size:11px;font-weight:700;color:#4B5A6C;font-family:'Space Grotesk',sans-serif;}
+.trend-val{font-size:11px;font-weight:700;font-family:'Space Grotesk',sans-serif;padding:3px 8px;border-radius:6px;}
+.trend-val.uptrend{color:#22C55E;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);}
+.trend-val.downtrend{color:#EF4444;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);}
+.trend-val.neutral{color:#4B5A6C;background:rgba(75,90,108,.1);border:1px solid #192030;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#192030;border-radius:3px;}
+/* ── DataEngine panel (added) ─────────────────────────────────────────────── */
+.btn-data-nav{margin:0 12px 10px;background:#0C1220;color:#3B82F6;border:1px solid rgba(59,130,246,.3);border-radius:7px;padding:9px 10px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;cursor:pointer;text-align:left;}
+.btn-data-nav:hover{background:rgba(59,130,246,.08);}
+.data-dash{flex:1;overflow-y:auto;padding:20px 26px;background:#07090E;}
+.data-hdr{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#E8EDF3;margin-bottom:4px;}
+.data-sub{font-size:11px;color:#4B5A6C;margin-bottom:18px;}
+.data-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px;}
+.data-card{background:#0A1018;border:1px solid #192030;border-radius:10px;padding:14px 16px;}
+.data-card-sym{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#3B82F6;margin-bottom:8px;}
+.data-card-row{display:flex;justify-content:space-between;font-size:11px;color:#8897A8;margin-bottom:4px;}
+.data-card-row b{color:#C8D0DC;font-weight:600;}
+.data-section{background:#0A1018;border:1px solid #192030;border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.data-section-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#2C3A4A;margin-bottom:12px;}
+.jobrow{display:flex;align-items:center;gap:10px;padding:10px;background:#0C1220;border:1px solid #192030;border-radius:8px;margin-bottom:8px;}
+.jobrow-info{flex:1;min-width:0;}
+.jobrow-sym{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;color:#D4DAE4;}
+.jobrow-meta{font-size:10px;color:#4B5A6C;margin-top:2px;}
+.jobbar{height:5px;background:#192030;border-radius:3px;margin-top:6px;overflow:hidden;}
+.jobbar-fill{height:100%;background:#3B82F6;transition:width .3s;}
+.jobrow-btns{display:flex;gap:5px;flex-shrink:0;}
+.jobbtn{font-size:10px;padding:5px 9px;border-radius:5px;border:1px solid #192030;background:transparent;color:#8897A8;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;}
+.jobbtn:hover{border-color:#3B82F6;color:#3B82F6;}
+.jobbtn.danger:hover{border-color:#EF4444;color:#EF4444;}
+.data-empty{font-size:11px;color:#2C3A4A;padding:10px 0;}
+/* ── Backtest panel (added) ───────────────────────────────────────────────── */
+.bt-trade-row{display:flex;justify-content:space-between;padding:8px 10px;background:#0C1220;border:1px solid #192030;border-radius:6px;margin-bottom:5px;font-size:11px;}
+.bt-trade-win{color:#22C55E;}
+.bt-trade-loss{color:#EF4444;}
+.bt-stat-box{background:#0C1220;border:1px solid #192030;border-radius:8px;padding:10px 14px;text-align:center;flex:1;}
+.bt-stat-val{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:#D4DAE4;}
+.bt-stat-lbl{font-size:10px;color:#4B5A6C;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sb">
+  <div class="logo">
+    <div class="logo-orb">🎯</div>
+    <span class="logo-name">Zone Touch</span>
+    <span class="logo-tag">10-in-1</span>
+  </div>
+  <button class="btn-data-nav" id="btnDataNav" onclick="showDataPanel()">📊 Data Engine</button>
+  <button class="btn-data-nav" id="btnBacktestNav" onclick="showBacktestPanel()" style="color:#A855F7;border-color:rgba(168,85,247,.3)">🧪 Backtest</button>
+  <div class="acct">
+    <div class="arow"><div class="adot" id="adot"></div><span class="albl" id="albl">Not connected</span></div>
+    <div class="abal" id="abal"></div>
+    <div class="aid"  id="aid"></div>
+    <div class="live-status" id="liveStatus"></div>
+    <button class="btn-oauth" onclick="loginWithDeriv()">
+      <svg width="14" height="14" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#fff"/><path d="M8 16a8 8 0 1 1 16 0A8 8 0 0 1 8 16z" fill="#C8102E"/></svg>
+      Login with Deriv (Live)
+    </button>
+    <div class="div-or"><span>or paste demo token</span></div>
+    <input type="password" class="tinp" id="tinp" placeholder="Demo API token…">
+    <button class="btn-demo" id="btnDemo" onclick="connectDemo()">Connect Demo</button>
+  </div>
+  <div class="slist" id="slist"></div>
+  <div class="sbfoot"><button class="btn-stopall" onclick="doStopAll()">■ Stop All Markets</button></div>
+</aside>
+<main class="main" id="main">
+  <div class="welcome">
+    <div class="wi">🎯</div>
+    <div class="wt">Zone Touch 10-in-1</div>
+    <div class="ws">Select a market from the sidebar</div>
+  </div>
+</main>
+</div>
+
+<script>
+const LOGIC_NAMES={golden:'Golden Logic',super:'Super Logic'};
+const COLORS=['#A78BFA','#22C55E','#3B82F6','#F59E0B','#EC4899','#06B6D4','#84CC16','#FB923C','#EF4444','#8B5CF6'];
+const COMBO_TYPES=[['RISE','Rise'],['FALL','Fall'],['HIGHER','Higher'],['LOWER','Lower'],['ONETOUCH','One Touch'],['NOTOUCH','No Touch'],['VANILLA_CALL','Vanilla Call'],['VANILLA_PUT','Vanilla Put']];
+let cur=null,syms=[],state={},appId='33HTyuiZsviXpxyNSLIrE';
+let tLogic=null,tMode=null,tFilter=null;
+
+async function loginWithDeriv(){
+  try{
+    G('liveStatus').textContent='Preparing login…';
+    const r=await GET('/api/oauth/url');
+    if(r.error){G('liveStatus').textContent='❌ '+r.error;return;}
+    window.location.href=r.url;
+  }catch(e){G('liveStatus').textContent='❌ '+e.message;}
+}
+
+// Shown after "Login with Deriv" completes — Deriv can return more than one
+// account (different currencies/types), so instead of silently trading on
+// whichever one the API listed first, the user picks explicitly here.
+function renderAccountPicker(accounts){
+  const ls=G('liveStatus');
+  if(!ls||!accounts||!accounts.length)return;
+  ls.style.color='#A78BFA';
+  ls.innerHTML = '<div style="margin-bottom:6px;color:#C8D0DC">Choose an account to connect:</div>' +
+    accounts.map(a=>`
+      <button class="btn-demo" style="width:100%;text-align:left;margin-bottom:5px;display:block" onclick="selectLiveAccount('${a.account_id}')">
+        <b>${a.account_id}</b> · ${a.currency||'—'}${a.balance!=null?` · ${a.balance}`:''}${a.account_type?` · ${a.account_type}`:''}
+      </button>`).join('');
+}
+
+async function selectLiveAccount(accountId){
+  const ls=G('liveStatus');
+  if(ls){ls.innerHTML='';ls.style.color='#FB923C';ls.textContent='Connecting…';}
+  const r=await POST('/api/oauth/select-account',{accountId});
+  if(r.error && ls){ls.textContent='❌ '+r.error;ls.style.color='#EF4444';}
+}
+
+async function connectDemo(){
+  const t=G('tinp').value.trim();if(!t)return;
+  const btn=G('btnDemo');btn.disabled=true;btn.textContent='Connecting…';
+  try{
+    const r=await POST('/api/token',{token:t});
+    G('tinp').value='';
+    if(r.error){alert('Demo login failed: '+r.error);return;}
+    showAcct(r);
+  }finally{btn.disabled=false;btn.textContent='Connect Demo';}
+}
+
+function showAcct(info){
+  G('adot').className='adot'+(info.ready?' on':'');
+  G('albl').textContent=info.ready?((info.isLive?'🔴 Live — ':'Demo — ')+(info.loginid||'Connected')):'Not connected';
+  G('abal').textContent=info.ready&&info.balance!=null?`${info.currency} ${Number(info.balance).toFixed(2)}`:'';
+  G('aid').textContent=info.loginid||'';
+}
+
+function buildSidebar(snaps){
+  const list=G('slist');list.innerHTML='';
+  snaps.forEach((s,i)=>{
+    state[s.id]=s;
+    const el=document.createElement('div');
+    el.className='si'+(cur===s.id?' active':'');el.id='si_'+s.id;el.onclick=()=>pick(s.id);
+    el.innerHTML=siInner(s,i);list.appendChild(el);
+  });
+}
+
+function siInner(s,i){
+  const pl=s.stats.profit,wr=s.stats.trades?Math.round(s.stats.wins/s.stats.trades*100):0;
+  const plT=pl!==0?(pl>0?'+':'')+'$'+Math.abs(pl).toFixed(2):'';
+  const plC=pl>0?'cg':pl<0?'cr':'cm';
+  const lName=LOGIC_NAMES[s.cfg?.logic]||s.cfg?.logic||'golden';
+  const demoTag=s.cfg?.demo_mode!==false?'<span style="color:#A78BFA">🧪</span> ':'<span style="color:#EF4444">🔴</span> ';
+  return `<div class="sinum${s.running?' on':''}">${i+1}</div>
+    <div class="simeta"><div class="sisym">${demoTag}${s.cfg?.symbol||'—'}</div>
+    <div class="sisub">${lName} &middot; ${s.stats.trades} trades &middot; ${wr}% WR</div></div>
+    <div class="siright"><div class="sdot${s.running?' on':''}"></div><div class="spl ${plC}">${plT}</div></div>`;
+}
+
+function patchSidebar(id){
+  const s=state[id];if(!s)return;
+  const el=G('si_'+id);if(!el)return;
+  const idx=parseInt(id.replace('slot',''));
+  el.innerHTML=siInner(s,idx);el.className='si'+(cur===id?' active':'');el.onclick=()=>pick(id);
+}
+
+async function pick(id){
+  inDataPanel=false;
+  inBacktestPanel=false;
+  if(btPollTimer){clearInterval(btPollTimer);btPollTimer=null;}
+  cur=id;tLogic=null;tMode=null;tFilter=null;
+  const h=G('sTrendMode');if(h)h.remove();
+  const gh=G('gTrendMode');if(gh)gh.remove();
+  document.querySelectorAll('.si').forEach(e=>e.classList.remove('active'));
+  const si=G('si_'+id);if(si)si.classList.add('active');
+  const idx=parseInt(id.replace('slot',''));
+  const[snap,logs,hist]=await Promise.all([GET(`/api/slot/${id}`),GET(`/api/slot/${id}/logs`),GET(`/api/slot/${id}/history`)]);
+  state[id]=snap;drawDash(id,idx,snap,logs,hist);
+}
+
+function drawDash(id,idx,snap,logs,hist){
+  const cfg=snap.cfg,stats=snap.stats;
+  const color=COLORS[idx]||'#A78BFA';
+  const logic=cfg.logic||'golden',mode=cfg.observe_mode||'ticks',filt=cfg.filter||'none';
+  const wr=stats.trades?(stats.wins/stats.trades*100).toFixed(1):'0.0';
+  const pl=stats.profit,plT=(pl>=0?'+':'')+'$'+Math.abs(pl).toFixed(2),plC=pl>0?'g':pl<0?'r':'';
+  const sOpts=syms.map(x=>`<option value="${x.symbol}"${x.symbol===cfg.symbol?' selected':''}>${x.display_name}</option>`).join('')||`<option value="${cfg.symbol}">${cfg.symbol}</option>`;
+
+  G('main').innerHTML=`
+<div class="dash">
+  <div class="hdr">
+    <div class="hdr-num" style="background:${color}18;border:1px solid ${color}35;color:${color}">${idx+1}</div>
+    <div class="hdr-info">
+      <div class="hdr-name" id="hName">${cfg.symbol}</div>
+      <div class="hdr-meta" id="hMeta">${metaLine(logic,mode,filt,cfg.demo_mode)}</div>
+    </div>
+    <span id="badge">${badgeHTML(snap)}</span>
+    <div class="hbtns">
+      <button class="btn-start" id="btnStart" style="background:${color}" onclick="doStart()" ${snap.running?'disabled':''}>▶ Start</button>
+      <button class="btn-stop" id="btnStop" onclick="doStop()" ${!snap.running?'disabled':''}>■ Stop</button>
+    </div>
+  </div>
+  <div class="sbar">
+    <div class="sc"><div class="sl">Trades</div><div class="sv" id="sT">${stats.trades}</div></div>
+    <div class="sc"><div class="sl">Wins</div><div class="sv g" id="sW">${stats.wins}</div></div>
+    <div class="sc"><div class="sl">Losses</div><div class="sv r" id="sL">${stats.losses}</div></div>
+    <div class="sc"><div class="sl">Win Rate</div><div class="sv" id="sWR">${wr}%</div></div>
+    <div class="sc"><div class="sl">Session P/L</div><div class="sv ${plC}" id="sPL">${plT}</div></div>
+  </div>
+  <div class="cgrid">
+    <div class="setp">
+      <div class="ph">Logic</div>
+      <div class="pills" id="logicPills" style="margin-bottom:10px">
+        <div class="pill${logic==='golden'?' on':''}" onclick="pickLogic('golden')"><div>Golden Logic</div><div class="pill-sub">Reversal Combo</div></div>
+        <div class="pill${logic==='super'?' on':''}" onclick="pickLogic('super')"><div>Super Logic</div><div class="pill-sub">Candle Sequence</div></div>
+      </div>
+      <div class="hr"></div>
+      <div class="tog-row" onclick="toggleDemoMode()" style="${cfg.demo_mode!==false?'border-color:#A78BFA':'border-color:#EF4444'}">
+        <div class="tog-lbl">${cfg.demo_mode!==false?'🧪 Demo Mode — Simulated Trades':'🔴 Real Mode — Live Trades'}
+          <span>${cfg.demo_mode!==false?'Watches real prices, no real money at risk':'Places real orders with real money'}</span>
+        </div>
+        <button class="tog${cfg.demo_mode!==false?' on':''}" id="togDemoMode"></button>
+      </div>
+      <div id="demoWinRow" style="${cfg.demo_mode!==false?'':'display:none'}">
+        <div class="f"><label>Manual Win Amount ($) — exact profit every simulated win pays, no live quote used. 0 = auto-estimate from Deriv. Demo Mode only, never affects Real Mode.</label>
+          <input type="number" id="demoWinAmount" value="${cfg.demo_win_amount||0}" min="0" step="0.01" placeholder="0 = auto"></div>
+      </div>
+      <div class="hr"></div>
+      <!-- Golden Logic settings -->
+      <div id="goldenPanel" style="${logic==='super'?'display:none':''}">
+      <div class="ph">Market &amp; Observation</div>
+      <div class="f"><label>Market</label><select id="fSym" onchange="syncMeta()">${sOpts}</select></div>
+      <div class="f"><label>Observe Mode</label>
+        <div class="pills" id="modePills">
+          <div class="pill${mode==='ticks'?' on':''}" onclick="pickMode('ticks')">Ticks</div>
+          <div class="pill${mode==='candles'?' on':''}" onclick="pickMode('candles')">M1 Candles</div>
+        </div>
+      </div>
+      <div class="row2" style="margin-bottom:9px">
+        <div class="f" style="margin-bottom:0"><label id="obsLbl">${mode==='candles'?'Candles':'Ticks'} to Observe</label><input type="number" id="fObs" value="${cfg.observe_count}" min="2"></div>
+        <div class="f" style="margin-bottom:0"><label>Reaction Range</label><input type="number" id="fRR" value="${cfg.reaction_range}" step="0.01" min="0.01"></div>
+      </div>
+      <div class="f" id="confRow">
+        <label id="confLbl">${mode==='candles'?'Confirmation Candles':'Confirmation Ticks'} back (0 = instant)</label>
+        <input type="number" id="fConf" value="${cfg.confirm_count}" min="0">
+      </div>
+      <div class="hr"></div>
+      <div class="ph">Trade</div>
+      <div class="f"><label>Stake (USD)</label><input type="number" id="fStake" value="${cfg.stake}" step="0.01" min="0.35"></div>
+      <div class="f"><label>Duration</label>
+        <div class="row3">
+          <input type="number" id="fDV" value="${cfg.duration_value}" min="1">
+          <select id="fDU">
+            <option value="t" ${cfg.duration_unit==='t'?'selected':''}>Ticks</option>
+            <option value="s" ${cfg.duration_unit==='s'?'selected':''}>Seconds</option>
+            <option value="m" ${cfg.duration_unit==='m'?'selected':''}>Minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2" style="margin-bottom:9px">
+        <div class="f" style="margin-bottom:0"><label>Barrier at HIGH</label><input type="text" id="fB1" value="${cfg.barrier1}"></div>
+        <div class="f" style="margin-bottom:0"><label>Barrier at LOW</label><input type="text" id="fB2" value="${cfg.barrier2}"></div>
+      </div>
+      <div id="comboRow">${comboBuilderHTML(cfg)}</div>
+      <div class="f"><label>Rest After LOSS (seconds)</label><input type="number" id="fRest" value="${cfg.rest_seconds}" min="0"></div>
+      <div class="tog-row" onclick="toggleSkipRest()">
+        <div class="tog-lbl">No Rest on WIN — Ride Momentum
+          <span>After a win: skip rest, keep current data, continue immediately</span>
+        </div>
+        <button class="tog${cfg.skip_rest_on_win?' on':''}" id="togSkipRest"></button>
+      </div>
+      <div class="row2" style="margin-bottom:9px">
+        <div class="f" style="margin-bottom:0"><label>Take Profit USD (session)</label><input type="number" id="fTP" value="${cfg.take_profit}" min="0" step="0.01"></div>
+        <div class="f" style="margin-bottom:0"><label>Stop Loss USD (session)</label><input type="number" id="fSL" value="${cfg.stop_loss}" min="0" step="0.01"></div>
+      </div>
+      <div class="hr"></div>
+      <div class="ph">Entry Filter</div>
+      <div class="pills" id="fpills">
+        <div class="fpill${filt==='none'?' fn':''}" onclick="pickFilter('none')"><div>None</div><div class="pill-sub">No filter</div></div>
+        <div class="fpill${filt==='momentum'?' fm':''}" onclick="pickFilter('momentum')"><div>⚡ Momentum</div><div class="pill-sub">Instant check</div></div>
+        <div class="fpill${filt==='trend'?' ft':''}" onclick="pickFilter('trend')"><div>📈 Trend</div><div class="pill-sub">M1 candle scan</div></div>
+      </div>
+      <div id="fSub">${filterSubHTML(filt,cfg)}</div>
+      <div class="hr"></div>
+      <div class="ph">Trend Confirmation (optional, on top of Entry Filter)</div>
+      <div class="tog-row" onclick="toggleGoldenTrend()">
+        <div class="tog-lbl">Enable Trend Confirmation
+          <span>HIGH touch needs downtrend confirmed, LOW touch needs uptrend confirmed</span>
+        </div>
+        <button class="tog${cfg.golden_trend_enabled?' on':''}" id="togGoldenTrend"></button>
+      </div>
+      <div id="goldenTrendFields" style="${cfg.golden_trend_enabled?'':'display:none'}">
+        <div class="pills" style="margin-top:4px" id="goldenTrendModePills">
+          <div class="pill${(cfg.golden_trend_mode||'m1_5_15')==='m1_5_15'?' on':''}" onclick="pickGoldenTrendMode('m1_5_15')"><div>M1-5-15</div><div class="pill-sub">3 timeframes</div></div>
+          <div class="pill${cfg.golden_trend_mode==='m1_5'?' on':''}" onclick="pickGoldenTrendMode('m1_5')"><div>M1-5</div><div class="pill-sub">Either matches</div></div>
+          <div class="pill${cfg.golden_trend_mode==='m1_and_5'?' on':''}" onclick="pickGoldenTrendMode('m1_and_5')"><div>M1+M5</div><div class="pill-sub">Both must match</div></div>
+        </div>
+        <div id="gMinMatchRow" style="${(cfg.golden_trend_mode||'m1_5_15')!=='m1_5_15'?'display:none':''}">
+          <div class="f"><label>Min Matching Timeframes (M1-5-15 mode)</label><input type="number" id="gMinMatch" value="${cfg.golden_trend_min_match||2}" min="1" max="3"></div>
+        </div>
+        <div class="f" style="margin-top:9px"><label>Trend Lookback — recent candles each timeframe checks</label></div>
+        <div class="row2" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="f"><label>M1 candles</label><input type="number" id="gLookM1" value="${cfg.golden_trend_lookback_m1||10}" min="3" max="100"></div>
+          <div class="f"><label>M5 candles</label><input type="number" id="gLookM5" value="${cfg.golden_trend_lookback_m5||8}" min="3" max="100"></div>
+          <div class="f"><label>M15 candles</label><input type="number" id="gLookM15" value="${cfg.golden_trend_lookback_m15||6}" min="3" max="100"></div>
+        </div>
+        <div class="f" style="margin-top:9px"><label>Trend Strictness — how strong the majority candle color must be to call a trend</label></div>
+        <div class="pills" id="goldenStrictPills">
+          <div class="pill${(cfg.golden_trend_strictness_mode||'manual')==='manual'?' on':''}" onclick="pickGoldenStrictMode('manual')"><div>Manual</div><div class="pill-sub">Fixed %</div></div>
+          <div class="pill${cfg.golden_trend_strictness_mode==='automatic'?' on':''}" onclick="pickGoldenStrictMode('automatic')"><div>Automatic</div><div class="pill-sub">Self-adjusting</div></div>
+        </div>
+        <div id="goldenStrictManual" style="${(cfg.golden_trend_strictness_mode||'manual')!=='manual'?'display:none':''}">
+          <div class="f"><label>Trend Threshold %</label><input type="number" id="gTrendPct" value="${cfg.golden_trend_threshold_pct||60}" min="50" max="99" step="1"></div>
+        </div>
+        <div id="goldenStrictAuto" style="${cfg.golden_trend_strictness_mode==='automatic'?'':'display:none'}">
+          <div class="row2" style="grid-template-columns:1fr 1fr">
+            <div class="f"><label>Min %</label><input type="number" id="gAutoMin" value="${cfg.golden_trend_auto_min_pct||60}" min="50" max="95" step="10"></div>
+            <div class="f"><label>Max %</label><input type="number" id="gAutoMax" value="${cfg.golden_trend_auto_max_pct||80}" min="50" max="99" step="10"></div>
+          </div>
+          <div class="f" style="opacity:.55;font-size:11px;margin-bottom:8px">Any loss always tightens one step (fixed 10%), up to Max. Win-streak easing controls how it eases back down.</div>
+          <div class="tog-row" onclick="toggleGoldenWinEase()">
+            <div class="tog-lbl">Ease on Win Streak
+              <span>A win streak loosens strictness one step</span>
+            </div>
+            <button class="tog${cfg.golden_trend_auto_win_ease_enabled!==false?' on':''}" id="togGoldenWinEase"></button>
+          </div>
+          <div id="goldenWinEaseFields" style="${cfg.golden_trend_auto_win_ease_enabled===false?'display:none':''}">
+            <div class="f"><label>Consecutive Wins Needed to Ease Up</label><input type="number" id="gAutoWinStreak" value="${cfg.golden_trend_auto_win_streak||1}" min="1" max="20"></div>
+          </div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="ph">Real Trend Pause</div>
+      <div class="tog-row" onclick="toggleGoldenStructurePause()">
+        <div class="tog-lbl">Pause on Ranging Structure
+          <span>After N losses, check real market structure (swing highs/lows) \u2014 hold new trades until price actually trends again</span>
+        </div>
+        <button class="tog${cfg.golden_structure_pause_enabled?' on':''}" id="togGoldenStructurePause"></button>
+      </div>
+      <div id="goldenStructurePauseFields" style="${cfg.golden_structure_pause_enabled?'':'display:none'}">
+        <div class="row2" style="grid-template-columns:1fr 1fr">
+          <div class="f"><label>Losses Before Checking</label><input type="number" id="gStructLossThreshold" value="${cfg.golden_structure_pause_loss_threshold||1}" min="1" max="20"></div>
+          <div class="f"><label>Timeframe(s) to Check</label>
+            <select id="gStructTimeframes">
+              <option value="m1" ${(cfg.golden_structure_pause_timeframes||'m1')==='m1'?'selected':''}>M1 only</option>
+              <option value="m5" ${cfg.golden_structure_pause_timeframes==='m5'?'selected':''}>M5 only</option>
+              <option value="m1_and_m5" ${cfg.golden_structure_pause_timeframes==='m1_and_m5'?'selected':''}>M1 and M5</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2" style="grid-template-columns:1fr 1fr">
+          <div class="f"><label>Swing Strength</label><input type="number" id="gSwingStrength" value="${cfg.golden_structure_swing_strength||2}" min="1" max="10"></div>
+          <div class="f"><label>Swing Points to Confirm</label><input type="number" id="gSwingConfirm" value="${cfg.golden_structure_swing_confirm_count||3}" min="2" max="10"></div>
+        </div>
+        <div class="f" style="opacity:.55;font-size:11px">Swing Strength = candles needed on each side to count as a real peak/trough. Swing Points to Confirm = how many consecutive higher-highs/higher-lows (or lower-highs/lower-lows) prove a real trend. Resumes automatically once confirmed \u2014 checked on every M1 close.</div>
+      </div>
+      <div class="hr"></div>
+      <div class="ph">Consolidation Filter</div>
+      <div class="tog-row" onclick="toggleGoldenConsolidation()">
+        <div class="tog-lbl">Block Tight/Choppy Ranges
+          <span>Skip trades when recent price range is too narrow</span>
+        </div>
+        <button class="tog${cfg.golden_consolidation_filter_enabled?' on':''}" id="togGoldenConsolidation"></button>
+      </div>
+      <div id="goldenConsolidationFields" style="${cfg.golden_consolidation_filter_enabled?'':'display:none'}">
+        <div class="row2">
+          <div class="f"><label>Lookback (M1 candles)</label><input type="number" id="gConsolLookback" value="${cfg.golden_consolidation_lookback||10}" min="3" max="100"></div>
+          <div class="f"><label>Min Range (price points)</label><input type="number" id="gConsolMinRange" value="${cfg.golden_consolidation_min_range||2.5}" min="0" step="0.1"></div>
+        </div>
+      </div>
+      </div>
+      <!-- Super Logic settings -->
+      <div id="superPanel" style="${logic!=='super'?'display:none':''}">
+      ${superSettingsHTML(cfg)}
+      </div>
+      <button class="btn-save" onclick="doSave()" style="background:${color}">Save Settings</button>
+      <div class="smsg" id="smsg" style="opacity:0"></div>
+    </div>
+    <div class="logp">
+      ${logic==='super'?`<div class="trend-bar" id="trendBar">
+        <div class="trend-item"><div class="trend-tf">M1</div><div class="trend-val neutral" id="trendM1">—</div></div>
+        <div class="trend-item"><div class="trend-tf">M5</div><div class="trend-val neutral" id="trendM5">—</div></div>
+        <div class="trend-item"><div class="trend-tf">M15</div><div class="trend-val neutral" id="trendM15">—</div></div>
+      </div>`:''}
+      <div class="log-hdr">
+        <div class="ph" style="margin-bottom:0">Live Log</div>
+        <div>
+          <button class="btn-clr" onclick="doClearLogs()">Clear Logs</button>
+          <button class="btn-clr" onclick="doClearStats()">Clear Stats</button>
+        </div>
+      </div>
+      <div class="logbox" id="logBox">${logs.slice(-150).map(leHTML).join('')}</div>
+    </div>
+    <div class="histp">
+      <div class="histhdr">Trade History</div>
+      <div id="histWrap">
+        ${hist.length?`<table><thead><tr><th>Time</th><th>Symbol</th><th>Contract</th><th>Barrier</th><th>Stake</th><th>Result</th><th>P/L</th></tr></thead><tbody id="histBody">${hist.map(hrHTML).join('')}</tbody></table>`:`<div class="emp">No trades yet</div>`}
+      </div>
+    </div>
+  </div>
+</div>`;
+  const lb=G('logBox');if(lb)lb.scrollTop=lb.scrollHeight;
+}
+
+function comboBuilderHTML(cfg){
+  return `
+  <div class="hr"></div>
+  <div class="ph">Golden Logic — Combo Builder</div>
+  <div class="combo-note">Only the side price <b>touches first</b> fires. The primary is a One Touch on that side's barrier. Attach <b>one</b> extra option to each side — it fires the same instant as the touch. WIN &amp; momentum/rest are decided by the <b>primary One Touch only</b>.</div>
+  ${comboSideHTML('high',cfg)}
+  ${comboSideHTML('low',cfg)}`;
+}
+function comboSideHTML(side,cfg){
+  const on=!!cfg['combo_'+side+'_on'];
+  const type=cfg['combo_'+side+'_type']||(side==='high'?'FALL':'RISE');
+  const label=side==='high'?'Attach to HIGH touch (+barrier)':'Attach to LOW touch (−barrier)';
+  return `
+  <div class="combo-side ${side}">
+    <div class="tog-row" style="margin-bottom:${on?'9px':'0'}" onclick="toggleCombo('${side}')">
+      <div class="tog-lbl">${label}<span>Fires simultaneously with the primary One Touch</span></div>
+      <button class="tog${on?' on':''}" id="togCombo_${side}"></button>
+    </div>
+    <div id="comboFields_${side}" style="${on?'':'display:none'}">
+      <div class="f"><label>Attached Option</label>
+        <select id="cType_${side}" onchange="comboTypeChange('${side}')">${comboTypeOptions(type)}</select>
+      </div>
+      <div class="f" id="cBarrierRow_${side}" style="${comboNeedsBarrier(type)?'':'display:none'}">
+        <label>Barrier (e.g. +2 / -2 / 2.50)</label>
+        <input type="text" id="cBarrier_${side}" value="${cfg['combo_'+side+'_barrier']||(side==='high'?'+2':'-2')}">
+      </div>
+      <div class="row2" style="margin-bottom:0">
+        <div class="f" style="margin-bottom:0"><label>Duration</label>
+          <div class="row3">
+            <input type="number" id="cDV_${side}" value="${cfg['combo_'+side+'_dv']||5}" min="1">
+            <select id="cDU_${side}">
+              <option value="t" ${(cfg['combo_'+side+'_du']||'t')==='t'?'selected':''}>Tk</option>
+              <option value="s" ${cfg['combo_'+side+'_du']==='s'?'selected':''}>Sec</option>
+              <option value="m" ${cfg['combo_'+side+'_du']==='m'?'selected':''}>Min</option>
+            </select>
+          </div>
+        </div>
+        <div class="f" style="margin-bottom:0"><label>Stake (USD)</label>
+          <input type="number" id="cStake_${side}" value="${cfg['combo_'+side+'_stake']||1}" step="0.01" min="0.35"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function comboTypeOptions(sel){return COMBO_TYPES.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}>${n}</option>`).join('');}
+function comboNeedsBarrier(t){return t!=='RISE'&&t!=='FALL';}
+function comboTypeChange(side){const t=gv('cType_'+side);const row=G('cBarrierRow_'+side);if(row)row.style.display=comboNeedsBarrier(t)?'':'none';}
+function toggleCombo(side){const b=G('togCombo_'+side);const on=!b.classList.contains('on');b.classList.toggle('on',on);const f=G('comboFields_'+side);if(f)f.style.display=on?'':'none';}
+
+function filterSubHTML(filt,cfg){
+  if(filt==='momentum')return`<div class="fbox"><div class="fbox-title m">⚡ Momentum Settings</div><div class="row2"><div class="f" style="margin-bottom:0"><label>Ticks/Candles to check</label><input type="number" id="fMC" value="${cfg.momentum_candles}" min="1" max="10"></div><div class="f" style="margin-bottom:0"><label>Body multiplier</label><input type="number" id="fMB" value="${cfg.momentum_body_mult}" step="0.1" min="0"></div></div></div>`;
+  if(filt==='trend')return`<div class="fbox"><div class="fbox-title t">📈 Trend Settings</div><div class="row2" style="margin-bottom:8px"><div class="f" style="margin-bottom:0"><label>M1 Candles to check</label><input type="number" id="fTC" value="${cfg.trend_candles}" min="3" max="20"></div><div class="f" style="margin-bottom:0"><label>Min body size</label><input type="number" id="fTB" value="${cfg.min_body_size}" step="0.01" min="0.01"></div></div><div class="row2"><div class="f" style="margin-bottom:0"><label>Max overlap (0–1)</label><input type="number" id="fTO" value="${cfg.max_overlap}" step="0.05" min="0" max="1"></div><div class="f" style="margin-bottom:0"><label>Min consec. candles</label><input type="number" id="fTD" value="${cfg.min_dir_candles}" min="2" max="10"></div></div></div>`;
+  return'';
+}
+
+function badgeHTML(snap){
+  if(!snap.running) return`<span class="badge stp">Stopped</span>`;
+  if(snap.busy||snap.phase==='trading') return`<span class="badge trd">● In Trade</span>`;
+  // Super Logic — show its own state
+  if(snap.cfg?.logic==='super'){
+    if(snap.superState==='triggering') return`<span class="badge con">● Triggering ${snap.superTriggerCount||0}/${snap.superOppositeCount||2}</span>`;
+    return`<span class="badge mon">● Scanning</span>`;
+  }
+  // Golden Logic
+  if(snap.liveCount<(snap.cfg?.observe_count||5)) return`<span class="badge col">● Collecting ${snap.liveCount}/${snap.cfg?.observe_count||5}</span>`;
+  if(snap.phase==='confirming') return`<span class="badge con">● Confirming</span>`;
+  return`<span class="badge mon">● Monitoring</span>`;
+}
+
+function metaLine(logic,mode,filter,demoMode){
+  const tag=demoMode===false?' · 🔴 LIVE':' · 🧪 DEMO';
+  if(logic==='super') return 'Super Logic · M1 Candles (core) · M5+M15 (trend)'+tag;
+  return `Golden Logic · ${mode==='candles'?'M1 Candles':'Ticks'} · Filter: ${filter}${tag}`;
+}
+
+function pickLogic(n){
+  tLogic=n;
+  document.querySelectorAll('#logicPills .pill').forEach(e=>e.classList.remove('on'));
+  const idx=n==='golden'?0:1;
+  const pills=document.querySelectorAll('#logicPills .pill');
+  if(pills[idx])pills[idx].classList.add('on');
+  const gp=G('goldenPanel'),sp=G('superPanel');
+  if(gp)gp.style.display=n==='super'?'none':'';
+  if(sp)sp.style.display=n==='super'?'':'none';
+  syncMeta();
+}
+
+function pickMode(mode){
+  tMode=mode;
+  document.querySelectorAll('#modePills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&mode==='ticks')||(i===1&&mode==='candles')));
+  const ol=G('obsLbl');if(ol)ol.textContent=(mode==='candles'?'Candles':'Ticks')+' to Observe';
+  const cl=G('confLbl');if(cl)cl.textContent=(mode==='candles'?'Confirmation Candles':'Confirmation Ticks')+' back (0 = instant)';
+  syncMeta();
+}
+
+function pickFilter(f){
+  tFilter=f;
+  const pills=G('fpills').querySelectorAll('.fpill');
+  pills.forEach(p=>p.className='fpill');
+  const map={none:'fn',momentum:'fm',trend:'ft'};
+  const idx=f==='none'?0:f==='momentum'?1:2;
+  if(pills[idx])pills[idx].className='fpill '+map[f];
+  G('fSub').innerHTML=filterSubHTML(f,state[cur]?.cfg||{});
+  syncMeta();
+}
+
+function toggleSkipRest(){const b=G('togSkipRest');b.classList.toggle('on',!b.classList.contains('on'));}
+function toggleDemoMode(){
+  const b=G('togDemoMode');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const row=b.closest('.tog-row');
+  const lbl=row.querySelector('.tog-lbl');
+  row.style.borderColor=on?'#A78BFA':'#EF4444';
+  lbl.innerHTML=on?'🧪 Demo Mode — Simulated Trades<span>Watches real prices, no real money at risk</span>':'🔴 Real Mode — Live Trades<span>Places real orders with real money</span>';
+  const wr=G('demoWinRow');if(wr)wr.style.display=on?'':'none';
+}
+function toggleConsolidation(){
+  const b=G('togConsolidation');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('consolidationFields');if(f)f.style.display=on?'':'none';
+}
+function toggleGoldenTrend(){
+  const b=G('togGoldenTrend');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('goldenTrendFields');if(f)f.style.display=on?'':'none';
+}
+function pickGoldenTrendMode(m){
+  document.querySelectorAll('#goldenTrendModePills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&m==='m1_5_15')||(i===1&&m==='m1_5')||(i===2&&m==='m1_and_5')));
+  const r=G('gMinMatchRow');if(r)r.style.display=m==='m1_5_15'?'':'none';
+  if(!G('gTrendMode')){const h=document.createElement('input');h.type='hidden';h.id='gTrendMode';h.value=m;document.body.appendChild(h);}
+  else G('gTrendMode').value=m;
+}
+function pickGoldenStrictMode(m){
+  document.querySelectorAll('#goldenStrictPills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&m==='manual')||(i===1&&m==='automatic')));
+  const mEl=G('goldenStrictManual'),aEl=G('goldenStrictAuto');
+  if(mEl)mEl.style.display=m==='manual'?'':'none';
+  if(aEl)aEl.style.display=m==='automatic'?'':'none';
+  if(!G('gStrictMode')){const h=document.createElement('input');h.type='hidden';h.id='gStrictMode';h.value=m;document.body.appendChild(h);}
+  else G('gStrictMode').value=m;
+}
+function toggleGoldenWinEase(){
+  const b=G('togGoldenWinEase');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('goldenWinEaseFields');if(f)f.style.display=on?'':'none';
+}
+function toggleGoldenStructurePause(){
+  const b=G('togGoldenStructurePause');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('goldenStructurePauseFields');if(f)f.style.display=on?'':'none';
+}
+function toggleGoldenConsolidation(){
+  const b=G('togGoldenConsolidation');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('goldenConsolidationFields');if(f)f.style.display=on?'':'none';
+}
+
+function syncMeta(){
+  const logic=tLogic||state[cur]?.cfg?.logic||'golden';
+  const sym=(logic==='super'?gv('sSym'):gv('fSym'))||'';
+  const mode=tMode||state[cur]?.cfg?.observe_mode||'ticks';
+  const filter=tFilter||state[cur]?.cfg?.filter||'none';
+  const demoMode=G('togDemoMode')?G('togDemoMode').classList.contains('on'):(state[cur]?.cfg?.demo_mode!==false);
+  const hn=G('hName');if(hn&&sym)hn.textContent=sym;
+  const hm=G('hMeta');if(hm)hm.textContent=metaLine(logic,mode,filter,demoMode);
+  if(sym&&cur){const si=G('si_'+cur);if(si){const ss=si.querySelector('.sisym');if(ss)ss.textContent=sym;}}
+}
+
+async function doSave(){
+  if(!cur)return;
+  const logic=tLogic||state[cur]?.cfg?.logic||'golden';
+  const mode=tMode||state[cur]?.cfg?.observe_mode||'ticks';
+  const filter=tFilter||state[cur]?.cfg?.filter||'none';
+  const prev=state[cur]?.cfg||{};
+  const isSuper = logic==='super';
+  // Read from correct panel based on active logic
+  const sym    = isSuper ? gv('sSym')    : gv('fSym');
+  const stake  = isSuper ? gv('sStake')  : gv('fStake');
+  const dv     = isSuper ? gv('sDV')     : gv('fDV');
+  const du     = isSuper ? gv('sDU')     : gv('fDU');
+  const b1     = isSuper ? gv('sB1')     : gv('fB1');
+  const b2     = isSuper ? gv('sB2')     : gv('fB2');
+  const tp     = isSuper ? gv('sTP')     : gv('fTP');
+  const sl     = isSuper ? gv('sSL')     : gv('fSL');
+  const cfg={
+    symbol:sym||prev.symbol, logic, observe_mode:mode,
+    demo_mode:G('togDemoMode')?G('togDemoMode').classList.contains('on'):(prev.demo_mode!==false),
+    demo_win_amount:Number(gv('demoWinAmount')||prev.demo_win_amount||0),
+    observe_count:Number(gv('fObs')||prev.observe_count),
+    reaction_range:parseFloat(gv('fRR')||prev.reaction_range||0.3),
+    confirm_count:Number(gv('fConf')||0),
+    stake:Number(stake||prev.stake),
+    duration_value:Number(dv||prev.duration_value),
+    duration_unit:du||prev.duration_unit||'t',
+    barrier1:(b1||prev.barrier1||'').trim(),
+    barrier2:(b2||prev.barrier2||'').trim(),
+    rest_seconds:Number(gv('fRest')||prev.rest_seconds||0),
+    skip_rest_on_win:G('togSkipRest')?G('togSkipRest').classList.contains('on'):(prev.skip_rest_on_win||false),
+    take_profit:parseFloat(tp||0),
+    stop_loss:parseFloat(sl||0),
+    filter, momentum_candles:Number(gv('fMC')||3), momentum_body_mult:parseFloat(gv('fMB')||1),
+    trend_candles:Number(gv('fTC')||5), min_body_size:parseFloat(gv('fTB')||0.05),
+    max_overlap:parseFloat(gv('fTO')||0.5), min_dir_candles:Number(gv('fTD')||3),
+    // Golden Logic trend confirmation + consolidation filter
+    golden_trend_enabled:G('togGoldenTrend')?G('togGoldenTrend').classList.contains('on'):(prev.golden_trend_enabled||false),
+    golden_trend_mode:gv('gTrendMode')||prev.golden_trend_mode||'m1_5_15',
+    golden_trend_min_match:Number(gv('gMinMatch')||prev.golden_trend_min_match||2),
+    golden_trend_lookback_m1:Number(gv('gLookM1')||prev.golden_trend_lookback_m1||10),
+    golden_trend_lookback_m5:Number(gv('gLookM5')||prev.golden_trend_lookback_m5||8),
+    golden_trend_lookback_m15:Number(gv('gLookM15')||prev.golden_trend_lookback_m15||6),
+    golden_trend_strictness_mode:gv('gStrictMode')||prev.golden_trend_strictness_mode||'manual',
+    golden_trend_threshold_pct:Number(gv('gTrendPct')||prev.golden_trend_threshold_pct||60),
+    golden_trend_auto_min_pct:Number(gv('gAutoMin')||prev.golden_trend_auto_min_pct||60),
+    golden_trend_auto_max_pct:Number(gv('gAutoMax')||prev.golden_trend_auto_max_pct||80),
+    golden_trend_auto_win_streak:Number(gv('gAutoWinStreak')||prev.golden_trend_auto_win_streak||1),
+    golden_trend_auto_win_ease_enabled:G('togGoldenWinEase')?G('togGoldenWinEase').classList.contains('on'):(prev.golden_trend_auto_win_ease_enabled!==false),
+    golden_structure_pause_enabled:G('togGoldenStructurePause')?G('togGoldenStructurePause').classList.contains('on'):(prev.golden_structure_pause_enabled||false),
+    golden_structure_pause_loss_threshold:Number(gv('gStructLossThreshold')||prev.golden_structure_pause_loss_threshold||1),
+    golden_structure_pause_timeframes:gv('gStructTimeframes')||prev.golden_structure_pause_timeframes||'m1',
+    golden_structure_swing_strength:Number(gv('gSwingStrength')||prev.golden_structure_swing_strength||2),
+    golden_structure_swing_confirm_count:Number(gv('gSwingConfirm')||prev.golden_structure_swing_confirm_count||3),
+    golden_consolidation_filter_enabled:G('togGoldenConsolidation')?G('togGoldenConsolidation').classList.contains('on'):(prev.golden_consolidation_filter_enabled||false),
+    golden_consolidation_lookback:Number(gv('gConsolLookback')||prev.golden_consolidation_lookback||10),
+    golden_consolidation_min_range:Number(gv('gConsolMinRange')||prev.golden_consolidation_min_range||2.5),
+    // Super Logic settings
+    super_same_color_count:Number(gv('sSameCount')||prev.super_same_color_count||3),
+    super_opposite_count:Number(gv('sOppCount')||prev.super_opposite_count||1),
+    super_trend_enabled:G('togSuperTrend')?G('togSuperTrend').classList.contains('on'):(prev.super_trend_enabled!==false),
+    super_trend_mode:gv('sTrendMode')||prev.super_trend_mode||'m1_5_15',
+    super_trend_min_match:Number(gv('sMinMatch')||prev.super_trend_min_match||2),
+    super_trend_lookback_m1:Number(gv('sLookM1')||prev.super_trend_lookback_m1||10),
+    super_trend_lookback_m5:Number(gv('sLookM5')||prev.super_trend_lookback_m5||8),
+    super_trend_lookback_m15:Number(gv('sLookM15')||prev.super_trend_lookback_m15||6),
+    super_trend_strictness_mode:gv('sStrictMode')||prev.super_trend_strictness_mode||'manual',
+    super_trend_threshold_pct:Number(gv('sTrendPct')||prev.super_trend_threshold_pct||60),
+    super_trend_auto_min_pct:Number(gv('sAutoMin')||prev.super_trend_auto_min_pct||60),
+    super_trend_auto_max_pct:Number(gv('sAutoMax')||prev.super_trend_auto_max_pct||80),
+    super_trend_auto_win_streak:Number(gv('sAutoWinStreak')||prev.super_trend_auto_win_streak||1),
+    super_trend_auto_win_ease_enabled:G('togSuperWinEase')?G('togSuperWinEase').classList.contains('on'):(prev.super_trend_auto_win_ease_enabled!==false),
+    super_structure_pause_enabled:G('togSuperStructurePause')?G('togSuperStructurePause').classList.contains('on'):(prev.super_structure_pause_enabled||false),
+    super_structure_pause_loss_threshold:Number(gv('sStructLossThreshold')||prev.super_structure_pause_loss_threshold||1),
+    super_structure_pause_timeframes:gv('sStructTimeframes')||prev.super_structure_pause_timeframes||'m1',
+    super_structure_swing_strength:Number(gv('sSwingStrength')||prev.super_structure_swing_strength||2),
+    super_structure_swing_confirm_count:Number(gv('sSwingConfirm')||prev.super_structure_swing_confirm_count||3),
+    super_consolidation_filter_enabled:G('togConsolidation')?G('togConsolidation').classList.contains('on'):(prev.super_consolidation_filter_enabled||false),
+    super_consolidation_lookback:Number(gv('sConsolLookback')||prev.super_consolidation_lookback||10),
+    super_consolidation_min_range:Number(gv('sConsolMinRange')||prev.super_consolidation_min_range||2.5),
+    super_cooldown_seconds:Number(gv('sCooldown')||prev.super_cooldown_seconds||30),
+  };
+  ['high','low'].forEach(side=>{
+    const tog=G('togCombo_'+side);
+    if(tog){
+      cfg['combo_'+side+'_on']=tog.classList.contains('on');
+      cfg['combo_'+side+'_type']=gv('cType_'+side)||'RISE';
+      cfg['combo_'+side+'_barrier']=(gv('cBarrier_'+side)||'').trim();
+      cfg['combo_'+side+'_dv']=Number(gv('cDV_'+side)||5);
+      cfg['combo_'+side+'_du']=gv('cDU_'+side)||'t';
+      cfg['combo_'+side+'_stake']=Number(gv('cStake_'+side)||1);
+    }else{
+      ['on','type','barrier','dv','du','stake'].forEach(k=>{const key='combo_'+side+'_'+k;if(prev[key]!==undefined)cfg[key]=prev[key];});
+    }
+  });
+  await POST(`/api/slot/${cur}/cfg`,cfg);
+  if(state[cur])state[cur].cfg={...state[cur].cfg,...cfg};
+  tLogic=null;tMode=null;tFilter=null;
+  const m=G('smsg');if(m){m.textContent='Saved ✓';m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2000);}
+}
+
+async function doStart(){
+  if(!cur)return;
+  const btn=G('btnStart');
+  if(btn){btn.disabled=true;btn.textContent='Starting…';}
+  await doSave(); // always save current settings before starting
+  const r=await POST(`/api/slot/${cur}/start`);
+  if(r.error){alert(r.error);if(btn){btn.disabled=false;btn.textContent='▶ Start';}}
+}
+async function doStop(){if(cur)await POST(`/api/slot/${cur}/stop`);}
+async function doStopAll(){if(confirm('Stop all running markets?'))await POST('/api/stopall');}
+async function doClearLogs(){if(!cur)return;await POST(`/api/slot/${cur}/clearlogs`);const lb=G('logBox');if(lb)lb.innerHTML='';}
+async function doClearStats(){
+  if(!cur)return;
+  if(!confirm('Clear all stats, P/L and history for this market?'))return;
+  await POST(`/api/slot/${cur}/clearstats`);
+  st('sT','0');st('sW','0');st('sL','0');st('sWR','0.0%');
+  const pe=G('sPL');if(pe){pe.textContent='+$0.00';pe.className='sv';}
+  const hw=G('histWrap');if(hw)hw.innerHTML='<div class="emp">No trades yet</div>';
+}
+
+function updateStats(snap){
+  if(!snap)return;
+  const stats=snap.stats||{};
+  const wr=stats.trades?(stats.wins/stats.trades*100).toFixed(1):'0.0';
+  const pl=stats.profit||0,plT=(pl>=0?'+':'')+'$'+Math.abs(pl).toFixed(2),plC=pl>0?'g':pl<0?'r':'';
+  st('sT',stats.trades||0);st('sW',stats.wins||0);st('sL',stats.losses||0);st('sWR',wr+'%');
+  const pe=G('sPL');if(pe){pe.textContent=plT;pe.className='sv '+plC;}
+  const b=G('badge');if(b)b.innerHTML=badgeHTML(snap);
+  const bs=G('btnStart');if(bs)bs.disabled=snap.running;
+  const ss=G('btnStop');if(ss)ss.disabled=!snap.running;
+}
+
+function leHTML(e){const ts=new Date(e.time).toLocaleTimeString();const c=e.level==='win'?'win':e.level==='loss'?'loss':e.level==='err'?'err':e.level==='ok'?'ok':'';return`<div class="le ${c}"><span class="ts">${ts}</span>${esc(e.msg)}</div>`;}
+function hrHTML(h){const ts=new Date(h.time).toLocaleTimeString(),p=Number(h.profit);const simTag=h.simulated?'<span style="color:#A78BFA;font-size:9px;margin-left:5px">SIM</span>':'';return`<tr><td>${ts}</td><td>${h.symbol}</td><td>${h.type}${simTag}</td><td>${h.barrier??'—'}</td><td>$${Number(h.stake).toFixed(2)}</td><td class="${h.won?'tw':'tl'}">${h.won?'WIN':'LOSS'}</td><td class="${p>=0?'tw':'tl'}">${p>=0?'+':''}$${Math.abs(p).toFixed(2)}</td></tr>`;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function appendLog(e){const lb=G('logBox');if(!lb)return;const d=document.createElement('div');d.innerHTML=leHTML(e);lb.appendChild(d.firstChild);lb.scrollTop=lb.scrollHeight;}
+function prependHist(h){let body=G('histBody');if(!body){const hw=G('histWrap');if(hw)hw.innerHTML=`<table><thead><tr><th>Time</th><th>Symbol</th><th>Contract</th><th>Barrier</th><th>Stake</th><th>Result</th><th>P/L</th></tr></thead><tbody id="histBody">${hrHTML(h)}</tbody></table>`;return;}const t=document.createElement('tbody');t.innerHTML=hrHTML(h);body.insertBefore(t.firstChild,body.firstChild);}
+
+function connectSSE(){
+  const es=new EventSource('/api/stream');
+  es.onmessage=e=>{try{handle(JSON.parse(e.data));}catch{}};
+  es.onerror=()=>{es.close();setTimeout(connectSSE,3000);};
+}
+
+function handle(d){
+  switch(d.type){
+    case 'trend':
+      if(d.slotId===cur){
+        const labels={uptrend:'▲ Uptrend',downtrend:'▼ Downtrend',neutral:'— Neutral'};
+        ['m1','m5','m15'].forEach(tf=>{
+          const el=G('trend'+tf.toUpperCase());
+          if(!el)return;
+          const val=d.data[tf]||'neutral';
+          el.textContent=labels[val]||val;
+          el.className='trend-val '+val;
+        });
+      }
+      break;
+    case 'init': appId=d.appId||appId;showAcct(d.account);buildSidebar(d.slots);break;
+    case 'account': showAcct(d.data);break;
+    case 'live_accounts': renderAccountPicker(d.accounts); break;
+    case 'live_status':
+      const ls=G('liveStatus');
+      if(ls){ls.textContent=d.msg;ls.style.color=d.status==='ready'?'#22C55E':d.status==='error'?'#EF4444':'#FB923C';}
+      break;
+    case 'state':
+      if(!state[d.slotId])state[d.slotId]={};Object.assign(state[d.slotId],d.data);
+      patchSidebar(d.slotId);if(d.slotId===cur)updateStats(state[d.slotId]);break;
+    case 'log': if(d.slotId===cur)appendLog(d.entry);break;
+    case 'log_cleared': if(d.slotId===cur){const lb=G('logBox');if(lb)lb.innerHTML='';}break;
+    case 'stats_cleared':
+      if(state[d.slotId]){state[d.slotId].stats={trades:0,wins:0,losses:0,profit:0};patchSidebar(d.slotId);}
+      if(d.slotId===cur){st('sT','0');st('sW','0');st('sL','0');st('sWR','0.0%');const pe=G('sPL');if(pe){pe.textContent='+$0.00';pe.className='sv';}const hw=G('histWrap');if(hw)hw.innerHTML='<div class="emp">No trades yet</div>';}
+      break;
+    case 'trade': if(d.slotId===cur)prependHist(d.data);break;
+    case 'download_progress': onDownloadProgress(d.data);break;
+  }
+}
+
+function superSettingsHTML(cfg){
+  const trendMode=cfg.super_trend_mode||'m1_5_15';
+  const trendOn=cfg.super_trend_enabled!==false;
+  return `
+  <div class="ph">Market</div>
+  <div class="f"><label>Market</label><select id="sSym" onchange="syncMeta()">${(typeof syms!=='undefined'?syms:[]).map(x=>`<option value="${x.symbol}"${x.symbol===cfg.symbol?' selected':''}>${x.display_name}</option>`).join('')||`<option value="${cfg.symbol}">${cfg.symbol}</option>`}</select></div>
+  <div class="hr"></div>
+  <div class="ph">Candle Sequence</div>
+  <div class="row2" style="margin-bottom:9px">
+    <div class="f" style="margin-bottom:0"><label>Same-Color Candles (min)</label><input type="number" id="sSameCount" value="${cfg.super_same_color_count||3}" min="1"></div>
+    <div class="f" style="margin-bottom:0"><label>Opposite Trigger Candles</label><input type="number" id="sOppCount" value="${cfg.super_opposite_count||1}" min="1"></div>
+  </div>
+  <div class="hr"></div>
+  <div class="ph">Trade</div>
+  <div class="f"><label>Stake (USD)</label><input type="number" id="sStake" value="${cfg.stake}" step="0.01" min="0.35"></div>
+  <div class="f"><label>Duration</label>
+    <div class="row3">
+      <input type="number" id="sDV" value="${cfg.duration_value}" min="1">
+      <select id="sDU">
+        <option value="t" ${cfg.duration_unit==='t'?'selected':''}>Ticks</option>
+        <option value="s" ${cfg.duration_unit==='s'?'selected':''}>Seconds</option>
+        <option value="m" ${cfg.duration_unit==='m'?'selected':''}>Minutes</option>
+      </select>
+    </div>
+  </div>
+  <div class="row2" style="margin-bottom:9px">
+    <div class="f" style="margin-bottom:0"><label>BUY Barrier (+)</label><input type="text" id="sB1" value="${cfg.barrier1}"></div>
+    <div class="f" style="margin-bottom:0"><label>SELL Barrier (−)</label><input type="text" id="sB2" value="${cfg.barrier2}"></div>
+  </div>
+  <div class="f"><label>Cooldown After Trade (seconds)</label><input type="number" id="sCooldown" value="${cfg.super_cooldown_seconds||30}" min="0"></div>
+  <div class="row2" style="margin-bottom:9px">
+    <div class="f" style="margin-bottom:0"><label>Take Profit USD (session)</label><input type="number" id="sTP" value="${cfg.take_profit}" min="0" step="0.01"></div>
+    <div class="f" style="margin-bottom:0"><label>Stop Loss USD (session)</label><input type="number" id="sSL" value="${cfg.stop_loss}" min="0" step="0.01"></div>
+  </div>
+  <div class="hr"></div>
+  <div class="ph">Trend Confirmation</div>
+  <div class="tog-row" onclick="toggleSuperTrend()">
+    <div class="tog-lbl">Enable Trend Confirmation
+      <span>Final filter before every trade execution</span>
+    </div>
+    <button class="tog${trendOn?' on':''}" id="togSuperTrend"></button>
+  </div>
+  <div id="superTrendFields" style="${trendOn?'':'display:none'}">
+    <div class="f" style="margin-top:9px"><label>Trend Confirmation Mode</label>
+      <div class="pills" style="margin-top:4px" id="trendModePills">
+        <div class="pill${trendMode==='m1_5_15'?' on':''}" onclick="pickTrendMode('m1_5_15')"><div>M1-5-15</div><div class="pill-sub">3 timeframes</div></div>
+        <div class="pill${trendMode==='m1_5'?' on':''}" onclick="pickTrendMode('m1_5')"><div>M1-5</div><div class="pill-sub">Either matches</div></div>
+        <div class="pill${trendMode==='m1_and_5'?' on':''}" onclick="pickTrendMode('m1_and_5')"><div>M1+M5</div><div class="pill-sub">Both must match</div></div>
+      </div>
+    </div>
+    <div id="minMatchRow" style="${trendMode!=='m1_5_15'?'display:none':''}">
+      <div class="f"><label>Min Matching Timeframes (M1-5-15 mode)</label><input type="number" id="sMinMatch" value="${cfg.super_trend_min_match||2}" min="1" max="3"></div>
+    </div>
+    <div class="f" style="margin-top:9px"><label>Trend Lookback — how many recent candles each timeframe checks (lower = faster to react, higher = smoother but slower)</label></div>
+    <div class="row2" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="f"><label>M1 candles</label><input type="number" id="sLookM1" value="${cfg.super_trend_lookback_m1||10}" min="3" max="100"></div>
+      <div class="f"><label>M5 candles</label><input type="number" id="sLookM5" value="${cfg.super_trend_lookback_m5||8}" min="3" max="100"></div>
+      <div class="f"><label>M15 candles</label><input type="number" id="sLookM15" value="${cfg.super_trend_lookback_m15||6}" min="3" max="100"></div>
+    </div>
+    <div class="f" style="margin-top:9px"><label>Trend Strictness — how strong the majority candle color must be to call a trend</label></div>
+    <div class="pills" id="superStrictPills">
+      <div class="pill${(cfg.super_trend_strictness_mode||'manual')==='manual'?' on':''}" onclick="pickSuperStrictMode('manual')"><div>Manual</div><div class="pill-sub">Fixed %</div></div>
+      <div class="pill${cfg.super_trend_strictness_mode==='automatic'?' on':''}" onclick="pickSuperStrictMode('automatic')"><div>Automatic</div><div class="pill-sub">Self-adjusting</div></div>
+    </div>
+    <div id="superStrictManual" style="${(cfg.super_trend_strictness_mode||'manual')!=='manual'?'display:none':''}">
+      <div class="f"><label>Trend Threshold %</label><input type="number" id="sTrendPct" value="${cfg.super_trend_threshold_pct||60}" min="50" max="99" step="1"></div>
+    </div>
+    <div id="superStrictAuto" style="${cfg.super_trend_strictness_mode==='automatic'?'':'display:none'}">
+      <div class="row2" style="grid-template-columns:1fr 1fr">
+        <div class="f"><label>Min %</label><input type="number" id="sAutoMin" value="${cfg.super_trend_auto_min_pct||60}" min="50" max="95" step="10"></div>
+        <div class="f"><label>Max %</label><input type="number" id="sAutoMax" value="${cfg.super_trend_auto_max_pct||80}" min="50" max="99" step="10"></div>
+      </div>
+      <div class="f" style="opacity:.55;font-size:11px;margin-bottom:8px">Any loss always tightens one step (fixed 10%), up to Max. Win-streak easing controls how it eases back down.</div>
+      <div class="tog-row" onclick="toggleSuperWinEase()">
+        <div class="tog-lbl">Ease on Win Streak
+          <span>A win streak loosens strictness one step</span>
+        </div>
+        <button class="tog${cfg.super_trend_auto_win_ease_enabled!==false?' on':''}" id="togSuperWinEase"></button>
+      </div>
+      <div id="superWinEaseFields" style="${cfg.super_trend_auto_win_ease_enabled===false?'display:none':''}">
+        <div class="f"><label>Consecutive Wins Needed to Ease Up</label><input type="number" id="sAutoWinStreak" value="${cfg.super_trend_auto_win_streak||1}" min="1" max="20"></div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="ph">Real Trend Pause</div>
+    <div class="tog-row" onclick="toggleSuperStructurePause()">
+      <div class="tog-lbl">Pause on Ranging Structure
+        <span>After N losses, check real market structure (swing highs/lows) — hold new trades until price actually trends again</span>
+      </div>
+      <button class="tog${cfg.super_structure_pause_enabled?' on':''}" id="togSuperStructurePause"></button>
+    </div>
+    <div id="superStructurePauseFields" style="${cfg.super_structure_pause_enabled?'':'display:none'}">
+      <div class="row2" style="grid-template-columns:1fr 1fr">
+        <div class="f"><label>Losses Before Checking</label><input type="number" id="sStructLossThreshold" value="${cfg.super_structure_pause_loss_threshold||1}" min="1" max="20"></div>
+        <div class="f"><label>Timeframe(s) to Check</label>
+          <select id="sStructTimeframes">
+            <option value="m1" ${(cfg.super_structure_pause_timeframes||'m1')==='m1'?'selected':''}>M1 only</option>
+            <option value="m5" ${cfg.super_structure_pause_timeframes==='m5'?'selected':''}>M5 only</option>
+            <option value="m1_and_m5" ${cfg.super_structure_pause_timeframes==='m1_and_m5'?'selected':''}>M1 and M5</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2" style="grid-template-columns:1fr 1fr">
+        <div class="f"><label>Swing Strength</label><input type="number" id="sSwingStrength" value="${cfg.super_structure_swing_strength||2}" min="1" max="10"></div>
+        <div class="f"><label>Swing Points to Confirm</label><input type="number" id="sSwingConfirm" value="${cfg.super_structure_swing_confirm_count||3}" min="2" max="10"></div>
+      </div>
+      <div class="f" style="opacity:.55;font-size:11px">Swing Strength = candles needed on each side to count as a real peak/trough. Swing Points to Confirm = how many consecutive higher-highs/higher-lows (or lower-highs/lower-lows) prove a real trend. Resumes automatically once confirmed — checked on every M1 close.</div>
+    </div>
+    <div class="hr"></div>
+    <div class="ph">Consolidation Filter</div>
+    <div class="tog-row" onclick="toggleConsolidation()">
+      <div class="tog-lbl">Block Tight/Choppy Ranges
+        <span>Skip trades when recent price range is too narrow — even if pattern &amp; trend both pass</span>
+      </div>
+      <button class="tog${cfg.super_consolidation_filter_enabled?' on':''}" id="togConsolidation"></button>
+    </div>
+    <div id="consolidationFields" style="${cfg.super_consolidation_filter_enabled?'':'display:none'}">
+      <div class="row2">
+        <div class="f"><label>Lookback (M1 candles)</label><input type="number" id="sConsolLookback" value="${cfg.super_consolidation_lookback||10}" min="3" max="100"></div>
+        <div class="f"><label>Min Range (price points)</label><input type="number" id="sConsolMinRange" value="${cfg.super_consolidation_min_range||2.5}" min="0" step="0.1"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleSuperTrend(){
+  const b=G('togSuperTrend');b.classList.toggle('on',!b.classList.contains('on'));
+  const f=G('superTrendFields');if(f)f.style.display=b.classList.contains('on')?'':'none';
+}
+function pickTrendMode(m){
+  document.querySelectorAll('#trendModePills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&m==='m1_5_15')||(i===1&&m==='m1_5')||(i===2&&m==='m1_and_5')));
+  const r=G('minMatchRow');if(r)r.style.display=m==='m1_5_15'?'':'none';
+  const inp=G('sTrendMode')||{};
+  // store in hidden field or just read from pills state in doSave
+  if(!G('sTrendMode')){const h=document.createElement('input');h.type='hidden';h.id='sTrendMode';h.value=m;document.body.appendChild(h);}
+  else G('sTrendMode').value=m;
+}
+function pickSuperStrictMode(m){
+  document.querySelectorAll('#superStrictPills .pill').forEach((e,i)=>e.classList.toggle('on',(i===0&&m==='manual')||(i===1&&m==='automatic')));
+  const mEl=G('superStrictManual'),aEl=G('superStrictAuto');
+  if(mEl)mEl.style.display=m==='manual'?'':'none';
+  if(aEl)aEl.style.display=m==='automatic'?'':'none';
+  if(!G('sStrictMode')){const h=document.createElement('input');h.type='hidden';h.id='sStrictMode';h.value=m;document.body.appendChild(h);}
+  else G('sStrictMode').value=m;
+}
+function toggleSuperWinEase(){
+  const b=G('togSuperWinEase');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('superWinEaseFields');if(f)f.style.display=on?'':'none';
+}
+function toggleSuperStructurePause(){
+  const b=G('togSuperStructurePause');if(!b)return;
+  const on=!b.classList.contains('on');
+  b.classList.toggle('on',on);
+  const f=G('superStructurePauseFields');if(f)f.style.display=on?'':'none';
+}
+
+const G=id=>document.getElementById(id);
+const gv=id=>{const e=G(id);return e?e.value:null;};
+const st=(id,v)=>{const e=G(id);if(e)e.textContent=v;};
+const GET=url=>fetch(url).then(r=>r.json());
+const POST=(url,body)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
+const DEL=(url,body)=>fetch(url,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json());
+
+// ── DataEngine panel (added) ──────────────────────────────────────────────
+let inDataPanel=false;
+let dataMarkets=[];
+let activeJobs={};
+let liveStatusMap={};
+
+function fmtBytes(n){
+  if(!n)return '0 B';
+  const u=['B','KB','MB','GB'];let i=0;
+  while(n>=1024&&i<u.length-1){n/=1024;i++;}
+  return n.toFixed(i===0?0:2)+' '+u[i];
+}
+function fmtEpoch(e){return e==null?'—':new Date(e*1000).toLocaleString();}
+function fmtEta(s){
+  if(s==null)return '—';
+  if(s<60)return s+'s';
+  if(s<3600)return Math.round(s/60)+'m';
+  return (s/3600).toFixed(1)+'h';
+}
+
+async function showDataPanel(){
+  inDataPanel=true;cur=null;
+  inBacktestPanel=false;
+  if(btPollTimer){clearInterval(btPollTimer);btPollTimer=null;}
+  document.querySelectorAll('.si').forEach(e=>e.classList.remove('active'));
+  if(!dataMarkets.length){try{dataMarkets=await GET('/api/data/markets');}catch{dataMarkets=[];}}
+  const [stats,jobs,liveStatus]=await Promise.all([GET('/api/data/stats').catch(()=>null),GET('/api/data/downloads').catch(()=>[]),GET('/api/data/live/status').catch(()=>[])]);
+  jobs.forEach(j=>activeJobs[j.id]=j);
+  liveStatusMap={};
+  liveStatus.forEach(s=>liveStatusMap[s.symbol]=s.running);
+  renderDataPanel(stats);
+}
+
+async function toggleLiveCollection(symbol,currentlyRunning){
+  const action=currentlyRunning?'pause':'resume';
+  const r=await POST(`/api/data/live/${symbol}/${action}`);
+  liveStatusMap[symbol]=r.running;
+  const stats=await GET('/api/data/stats').catch(()=>null);
+  renderDataPanel(stats);
+}
+
+// Global stop/start for ALL live tick collection at once — the bot keeps
+// trading either way, this only controls the background tick recorder that
+// feeds the Data Engine / backtest store.
+async function toggleAllLiveCollection(pauseAll){
+  const btn=G('btnAllLive'); if(btn){btn.disabled=true;btn.textContent=pauseAll?'Pausing…':'Resuming…';}
+  try{
+    for(const symbol of dataMarkets){
+      const action=pauseAll?'pause':'resume';
+      try{ const r=await POST(`/api/data/live/${symbol}/${action}`); liveStatusMap[symbol]=r.running; }catch{}
+    }
+    const stats=await GET('/api/data/stats').catch(()=>null);
+    renderDataPanel(stats);
+  } finally { if(btn){btn.disabled=false;} }
+}
+
+function renderDataPanel(stats){
+  if(!inDataPanel)return;
+  const cards=(stats?.symbols||[]).map(s=>{
+    const running=liveStatusMap[s.symbol]!==false; // default true (collector starts on boot)
+    return `
+    <div class="data-card">
+      <div class="data-card-sym" style="display:flex;justify-content:space-between;align-items:center">
+        <span>${s.symbol}</span>
+        <button class="jobbtn" style="font-size:9px;padding:3px 8px;border-color:${running?'#22C55E':'#4B5A6C'};color:${running?'#22C55E':'#4B5A6C'}" onclick="toggleLiveCollection('${s.symbol}',${running})">
+          ${running?'● LIVE':'⏸ PAUSED'}
+        </button>
+      </div>
+      <div class="data-card-row"><span>Ticks</span><b>${s.tickCount.toLocaleString()}</b></div>
+      <div class="data-card-row"><span>Candles</span><b>${s.candleCount.toLocaleString()}</b></div>
+      <div class="data-card-row"><span>Oldest</span><b>${fmtEpoch(s.oldestEpoch)}</b></div>
+      <div class="data-card-row"><span>Newest</span><b>${fmtEpoch(s.newestEpoch)}</b></div>
+    </div>`;
+  }).join('');
+  const symOpts=dataMarkets.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const jobsHtml=renderJobRows();
+
+  G('main').innerHTML=`
+  <div class="data-dash">
+    <div class="data-hdr" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>📊 Data Engine</span>
+      <span style="display:flex;gap:6px">
+        <button id="btnAllLive" class="jobbtn danger" onclick="toggleAllLiveCollection(true)">⏸ Pause All Live</button>
+        <button class="jobbtn" onclick="toggleAllLiveCollection(false)">▶ Resume All Live</button>
+      </span>
+    </div>
+    <div class="data-sub">Shared market database — ${fmtBytes(stats?.dbSizeBytes||0)} on disk &middot; ${stats?.dbPath||''}</div>
+    <div class="data-grid">${cards||'<div class="data-empty">No data yet</div>'}</div>
+
+    <div class="data-section">
+      <div class="data-section-title">Download Historical Data</div>
+      <div class="row3" style="grid-template-columns:1fr 1fr 1fr auto;gap:8px">
+        <select id="dlSymbol">${symOpts}</select>
+        <input type="number" id="dlAmount" value="7" min="1" step="1">
+        <select id="dlUnit">
+          <option value="days">Days</option>
+          <option value="weeks">Weeks</option>
+          <option value="months">Months</option>
+        </select>
+        <button class="btn-save" style="margin-top:0;width:auto;padding:8px 18px" onclick="doStartDownload()">Download</button>
+      </div>
+      <div id="dlMsg" class="smsg"></div>
+    </div>
+
+    <div class="data-section">
+      <div class="data-section-title">Active &amp; Recent Downloads</div>
+      <div id="jobList">${jobsHtml}</div>
+    </div>
+
+    <div class="data-section">
+      <div class="data-section-title">Search Data</div>
+      <div class="row3" style="grid-template-columns:1fr 1fr 1fr auto;gap:8px">
+        <select id="searchSymbol">${symOpts}</select>
+        <input type="datetime-local" id="searchStart">
+        <input type="datetime-local" id="searchEnd">
+        <button class="btn-save" style="margin-top:0;width:auto;padding:8px 18px" onclick="doSearch()">Search</button>
+      </div>
+      <div id="searchResult" style="margin-top:10px;font-size:11px;color:#8897A8"></div>
+    </div>
+
+    <div class="data-section">
+      <div class="data-section-title">Delete History By Range</div>
+      <div class="row3" style="grid-template-columns:1fr 1fr 1fr auto;gap:8px">
+        <select id="delSymbol">${symOpts}</select>
+        <input type="datetime-local" id="delStart">
+        <input type="datetime-local" id="delEnd">
+        <button class="btn-stop" style="padding:8px 18px" onclick="doDeleteRange()">Delete</button>
+      </div>
+      <div id="delMsg" class="smsg"></div>
+    </div>
+
+    <div class="data-section">
+      <div class="data-section-title">Database Integrity</div>
+      <button class="jobbtn" onclick="doCheckIntegrity()">Run Check</button>
+      <div id="integrityResult" style="margin-top:10px;font-size:11px;color:#8897A8"></div>
+    </div>
+  </div>`;
+}
+
+function renderJobRows(){
+  const jobs=Object.values(activeJobs).sort((a,b)=>(b._ts||0)-(a._ts||0));
+  if(!jobs.length)return '<div class="data-empty">No downloads yet</div>';
+  return jobs.map(j=>{
+    const controls = j.status==='running'
+      ? `<button class="jobbtn" onclick="doPause('${j.id}')">Pause</button><button class="jobbtn danger" onclick="doCancel('${j.id}')">Cancel</button>`
+      : j.status==='paused'
+      ? `<button class="jobbtn" onclick="doResume('${j.id}')">Resume</button><button class="jobbtn danger" onclick="doCancel('${j.id}')">Cancel</button>`
+      : '';
+    const statusColor = j.status==='completed'?'#22C55E':j.status==='error'?'#EF4444':j.status==='cancelled'?'#4B5A6C':'#FB923C';
+    return `<div class="jobrow" id="job_${j.id}">
+      <div class="jobrow-info">
+        <div class="jobrow-sym">${j.symbol} <span style="color:${statusColor};font-size:10px;text-transform:uppercase">${j.status}</span></div>
+        <div class="jobrow-meta">${j.ticksDownloaded.toLocaleString()} ticks &middot; ${j.percent}% &middot; ${j.downloadSpeedTicksPerSec} ticks/s &middot; ETA ${fmtEta(j.etaSeconds)}${j.error?' &middot; '+esc(j.error):''}</div>
+        ${j.note?`<div style="font-size:10px;color:#FB923C;margin-top:4px">⚠ ${esc(j.note)}</div>`:''}
+        <div class="jobbar"><div class="jobbar-fill" style="width:${j.percent}%"></div></div>
+      </div>
+      <div class="jobrow-btns">${controls}</div>
+    </div>`;
+  }).join('');
+}
+
+function onDownloadProgress(job){
+  job._ts=Date.now();
+  activeJobs[job.id]=job;
+  if(!inDataPanel)return;
+  const list=G('jobList');
+  if(list)list.innerHTML=renderJobRows();
+}
+
+async function doStartDownload(){
+  const symbol=gv('dlSymbol'),amount=Number(gv('dlAmount')),unit=gv('dlUnit');
+  const msg=G('dlMsg');
+  const r=await POST('/api/data/download',{symbol,amount,unit});
+  if(r.error){msg.textContent='❌ '+r.error;msg.style.color='#EF4444';return;}
+  msg.textContent='✓ Download started';msg.style.color='#22C55E';
+  activeJobs[r.id]=r;
+  const list=G('jobList');if(list)list.innerHTML=renderJobRows();
+}
+
+async function doPause(jobId){const r=await POST(`/api/data/download/${jobId}/pause`);if(!r.error){activeJobs[jobId]=r;G('jobList').innerHTML=renderJobRows();}}
+async function doResume(jobId){const r=await POST(`/api/data/download/${jobId}/resume`);if(!r.error){activeJobs[jobId]=r;G('jobList').innerHTML=renderJobRows();}}
+async function doCancel(jobId){
+  if(!confirm('Cancel this download? Data already downloaded will be kept.'))return;
+  const r=await POST(`/api/data/download/${jobId}/cancel`);
+  if(!r.error){activeJobs[jobId]=r;G('jobList').innerHTML=renderJobRows();}
+}
+
+async function doSearch(){
+  const symbol=gv('searchSymbol'),start=gv('searchStart'),end=gv('searchEnd');
+  const out=G('searchResult');
+  if(!start||!end){out.textContent='Pick a start and end date/time.';return;}
+  const r=await GET(`/api/data/search?symbol=${encodeURIComponent(symbol)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=1000`);
+  if(r.error){out.textContent='❌ '+r.error;return;}
+  out.innerHTML=`Found <b style="color:#C8D0DC">${r.ticks.length}</b> ticks and <b style="color:#C8D0DC">${r.candles.length}</b> candles in range${r.ticksTruncated?' (truncated at 1000)':''}.`;
+}
+
+async function doDeleteRange(){
+  const symbol=gv('delSymbol'),start=gv('delStart'),end=gv('delEnd');
+  const msg=G('delMsg');
+  if(!start||!end){msg.textContent='Pick a start and end date/time.';msg.style.color='#EF4444';return;}
+  if(!confirm(`Permanently delete ${symbol} history from ${start} to ${end}? This cannot be undone.`))return;
+  const r=await DEL('/api/data/range',{symbol,start,end});
+  if(r.error){msg.textContent='❌ '+r.error;msg.style.color='#EF4444';return;}
+  msg.textContent=`✓ Deleted ${r.deletedTicks} ticks, ${r.deletedCandles} candles`;msg.style.color='#22C55E';
+  const stats=await GET('/api/data/stats').catch(()=>null);
+  renderDataPanel(stats);
+}
+
+async function doCheckIntegrity(){
+  const out=G('integrityResult');
+  out.textContent='Checking…';
+  const r=await GET('/api/data/integrity');
+  if(r.error){out.textContent='❌ '+r.error;return;}
+  const rows=r.symbols.map(s=>`${s.symbol}: ${s.tickCount.toLocaleString()} ticks, ${s.gapsOverThreshold} gap(s) over ${r.gapThresholdSeconds}s${s.largestGapSeconds?` (largest ${s.largestGapSeconds}s)`:''}`).join('<br>');
+  out.innerHTML=`SQLite integrity: <b style="color:${r.sqliteIntegrityOk?'#22C55E':'#EF4444'}">${r.sqliteIntegrityOk?'OK':'FAILED'}</b><br>${rows}`;
+}
+
+// ── Backtest panel (added) ────────────────────────────────────────────────
+let inBacktestPanel=false;
+let btActiveId=null;
+let btPollTimer=null;
+
+async function showBacktestPanel(){
+  inBacktestPanel=true;inDataPanel=false;cur=null;
+  document.querySelectorAll('.si').forEach(e=>e.classList.remove('active'));
+  if(!dataMarkets.length){try{dataMarkets=await GET('/api/data/markets');}catch{dataMarkets=[];}}
+  renderBacktestPanel(null);
+}
+
+function renderBacktestPanel(state){
+  if(!inBacktestPanel)return;
+  const symOpts=dataMarkets.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const slotOpts=Array.from({length:10},(_,i)=>`<option value="slot${i}">Slot ${i+1}</option>`).join('');
+
+  G('main').innerHTML=`
+  <div class="data-dash">
+    <div class="data-hdr">🧪 Backtest</div>
+    <div class="data-sub">Replays downloaded historical ticks through the exact same strategy engine as Live/Demo — no connection required.</div>
+
+    <div class="data-section">
+      <div class="data-section-title">Configure Run</div>
+      <div style="font-size:10px;color:#4B5A6C;margin-bottom:8px">Picks up the strategy config (logic, barriers, durations, stake) already saved on the chosen slot.</div>
+      <div class="row3" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+        <select id="btSlot">${slotOpts}</select>
+        <select id="btSymbol">${symOpts}</select>
+        <select id="btSpeed">
+          <option value="1">1x</option>
+          <option value="10">10x</option>
+          <option value="50">50x</option>
+          <option value="100" selected>100x</option>
+          <option value="max">Max speed</option>
+        </select>
+      </div>
+      <div class="row3" style="grid-template-columns:1fr 1fr auto;gap:8px">
+        <input type="datetime-local" id="btStart">
+        <input type="datetime-local" id="btEnd">
+        <button class="btn-save" style="margin-top:0;width:auto;padding:8px 18px" onclick="doStartBacktest()">Start</button>
+      </div>
+      <div id="btMsg" class="smsg"></div>
+    </div>
+
+    <div id="btRunPanel"></div>
+  </div>`;
+}
+
+function fmtBtDate(iso){ return iso ? new Date(iso).toLocaleString() : '—'; }
+
+async function doStartBacktest(){
+  const slotId=gv('btSlot'), symbol=gv('btSymbol'), speed=gv('btSpeed');
+  const start=gv('btStart'), end=gv('btEnd');
+  const msg=G('btMsg');
+  if(!start||!end){msg.textContent='Pick a start and end date/time.';msg.style.color='#EF4444';return;}
+  const r=await POST('/api/backtest/start',{slotId,symbol,start,end,speed});
+  if(r.error){msg.textContent='❌ '+r.error;msg.style.color='#EF4444';return;}
+  msg.textContent='';
+  btActiveId=r.id;
+  renderBacktestRun(r);
+  if(btPollTimer)clearInterval(btPollTimer);
+  btPollTimer=setInterval(pollBacktest,500);
+}
+
+async function pollBacktest(){
+  if(!btActiveId||!inBacktestPanel)return;
+  const r=await GET(`/api/backtest/${btActiveId}`).catch(()=>null);
+  if(!r)return;
+  renderBacktestRun(r);
+  if(['completed','error','cancelled'].includes(r.status)){
+    clearInterval(btPollTimer);btPollTimer=null;
+  }
+}
+
+function renderBacktestRun(r){
+  const panel=G('btRunPanel');
+  if(!panel)return;
+  const statusColor=r.status==='completed'?'#22C55E':r.status==='error'?'#EF4444':r.status==='cancelled'?'#4B5A6C':'#FB923C';
+  const controls = r.status==='running'
+    ? `<button class="jobbtn" onclick="btPause('${r.id}')">Pause</button><button class="jobbtn danger" onclick="btCancel('${r.id}')">Cancel</button>`
+    : r.status==='paused'
+    ? `<button class="jobbtn" onclick="btResume('${r.id}')">Resume</button><button class="jobbtn danger" onclick="btCancel('${r.id}')">Cancel</button>`
+    : '';
+
+  const stats=r.stats||{trades:0,wins:0,losses:0,profit:0};
+  const winRate=stats.trades?((stats.wins/stats.trades)*100).toFixed(1):'0.0';
+
+  const tradeRows=(r.history||[]).map(t=>`
+    <div class="bt-trade-row">
+      <span>${t.type}${t.barrier?' @'+t.barrier:''} &middot; ${fmtBtDate(t.time)}</span>
+      <span class="${t.won?'bt-trade-win':'bt-trade-loss'}">${t.won?'WIN':'LOSS'} ${t.profit>=0?'+':''}${t.profit.toFixed(2)}${t.insufficientData?' ⚠':''}</span>
+    </div>`).join('');
+
+  panel.innerHTML=`
+    <div class="data-section">
+      <div class="data-section-title">Run ${r.id}</div>
+      <div class="jobrow">
+        <div class="jobrow-info">
+          <div class="jobrow-sym">${r.symbol} <span style="color:${statusColor};font-size:10px;text-transform:uppercase">${r.status}</span></div>
+          <div class="jobrow-meta">${fmtBtDate(r.fromPeriod)} &rarr; ${fmtBtDate(r.toPeriod)} &middot; now at ${fmtBtDate(r.currentPeriod)} &middot; ${r.processedTicks.toLocaleString()}/${r.totalTicks.toLocaleString()} ticks</div>
+          <div class="jobbar"><div class="jobbar-fill" style="width:${r.percent}%"></div></div>
+          ${r.error?`<div style="font-size:10px;color:#EF4444;margin-top:4px">${esc(r.error)}</div>`:''}
+          ${r.note?`<div style="font-size:10px;color:#FB923C;margin-top:4px">⚠ ${esc(r.note)}</div>`:''}
+        </div>
+        <div class="jobrow-btns">${controls}</div>
+      </div>
+    </div>
+
+    <div class="data-section">
+      <div class="data-section-title">Results</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <div class="bt-stat-box"><div class="bt-stat-val">${stats.trades}</div><div class="bt-stat-lbl">Trades</div></div>
+        <div class="bt-stat-box"><div class="bt-stat-val" style="color:#22C55E">${stats.wins}</div><div class="bt-stat-lbl">Wins</div></div>
+        <div class="bt-stat-box"><div class="bt-stat-val" style="color:#EF4444">${stats.losses}</div><div class="bt-stat-lbl">Losses</div></div>
+        <div class="bt-stat-box"><div class="bt-stat-val">${winRate}%</div><div class="bt-stat-lbl">Win Rate</div></div>
+        <div class="bt-stat-box"><div class="bt-stat-val" style="color:${stats.profit>=0?'#22C55E':'#EF4444'}">${stats.profit>=0?'+':''}${stats.profit.toFixed(2)}</div><div class="bt-stat-lbl">Profit</div></div>
+      </div>
+      ${tradeRows||'<div class="data-empty">No trades yet</div>'}
+    </div>`;
+}
+
+async function btPause(id){const r=await POST(`/api/backtest/${id}/pause`);renderBacktestRun(r);}
+async function btResume(id){const r=await POST(`/api/backtest/${id}/resume`);renderBacktestRun(r);if(btPollTimer)clearInterval(btPollTimer);btPollTimer=setInterval(pollBacktest,500);}
+async function btCancel(id){
+  if(!confirm('Cancel this backtest run?'))return;
+  const r=await POST(`/api/backtest/${id}/cancel`);renderBacktestRun(r);
+}
+
+
+
+async function loadSymbols(){try{const d=await GET('/api/symbols');if(Array.isArray(d))syms=d;}catch{}}
+(async function init(){await loadSymbols();connectSSE();})();
+</script>
+</body>
+</html>
